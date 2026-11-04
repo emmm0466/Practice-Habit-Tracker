@@ -11,6 +11,7 @@ const DEMO_PROFILE = Object.freeze({
 });
 const GROWTH_STAGES = ["Seed", "Sprout", "Growing stalk", "Bud", "Developing flower", "Full bloom"];
 const GROWTH_GOAL_MINUTES = 300;
+const MAX_WEEKLY_TOKENS = 8;
 const dialog = document.querySelector("#practice-dialog");
 const goalDialog = document.querySelector("#goal-dialog");
 const form = document.querySelector("#practice-form");
@@ -65,6 +66,31 @@ function normalizeSession(session) {
     tokensEarned: Number.isInteger(session.tokensEarned) ? Math.max(0, session.tokensEarned) : 0,
   };
 }
+function parseTokenBalance(value) {
+  const parsed = typeof value === "number" ? value
+    : typeof value === "string" && /^\d+$/.test(value.trim()) ? Number(value)
+      : NaN;
+  return Number.isSafeInteger(parsed) && parsed >= 0 ? parsed : null;
+}
+function tokenLabel(value) {
+  return `${value} seed token${value === 1 ? "" : "s"}`;
+}
+function recoverTokenBalance(saved, sessions, unlocked) {
+  const savedBalance = parseTokenBalance(saved.seedTokens);
+  if (savedBalance !== null) return savedBalance;
+  const legacyBalance = parseTokenBalance(saved.tokens);
+  if (legacyBalance !== null) return legacyBalance;
+
+  const earnedByWeek = new Map();
+  for (const session of sessions) {
+    const earned = Number.isSafeInteger(session.tokensEarned) ? Math.max(0, session.tokensEarned) : 0;
+    const week = startOfWeek(session.date);
+    earnedByWeek.set(week, Math.min(MAX_WEEKLY_TOKENS, (earnedByWeek.get(week) || 0) + earned));
+  }
+  const earned = [...earnedByWeek.values()].reduce((total, tokens) => total + tokens, 0);
+  const spent = unlocked.reduce((total, name) => total + (FLOWERS.find((flower) => flower.name === name)?.cost || 0), 0);
+  return Math.max(0, earned - spent);
+}
 function growthFor(plant) {
   const progress = Math.min(1, Math.max(
     Number.isFinite(plant.growthFloor) ? plant.growthFloor : 0,
@@ -114,10 +140,7 @@ function loadState() {
       .map((flower) => flower === "Sunny" ? "Sunflower" : flower)
       .filter((flower) => typeof flower === "string" && FLOWERS.some((item) => item.name === flower)),
   ])];
-  const oldTokenBalance = Number.isFinite(saved.seedTokens)
-    ? saved.seedTokens
-    : Number.isFinite(saved.tokens) ? saved.tokens : 0;
-  const seedTokens = Math.max(0, Math.floor(oldTokenBalance));
+  const seedTokens = recoverTokenBalance(saved, sessions, unlocked);
 
   let garden;
   if (Array.isArray(saved.garden)) {
@@ -473,7 +496,7 @@ function renderFlower() {
     document.querySelector("#flower-progress").setAttribute("aria-valuenow", "100");
     document.querySelector("#flower-progress-fill").style.width = "100%";
     document.querySelector("#streak-count").textContent = `${getStreak()} ${getStreak() === 1 ? "day" : "days"}`;
-    document.querySelector("#token-count").textContent = `${state.seedTokens} seed tokens`;
+    document.querySelector("#token-count").textContent = tokenLabel(state.seedTokens);
     return;
   }
   const growth = growthFor(plant);
@@ -492,7 +515,7 @@ function renderFlower() {
   document.querySelector("#flower-progress").setAttribute("aria-valuetext", `${growth.percent}% grown`);
   document.querySelector("#flower-progress-fill").style.width = `${growth.percent}%`;
   document.querySelector("#streak-count").textContent = `${getStreak()} ${getStreak() === 1 ? "day" : "days"}`;
-  document.querySelector("#token-count").textContent = `${state.seedTokens} seed tokens`;
+  document.querySelector("#token-count").textContent = tokenLabel(state.seedTokens);
 }
 function renderLog() {
   const list = document.querySelector("#log-list");
@@ -635,6 +658,7 @@ function updatePlantSvg(svg, plant, health) {
 function renderCollection() {
   const health = getPlantHealth();
   const garden = document.querySelector("#mini-garden");
+  document.querySelector("#shop-token-count").textContent = tokenLabel(state.seedTokens);
   document.querySelector("#collection-count").textContent = `${state.garden.length} / ${FLOWERS.length}`;
   const active = activePlant();
   FLOWERS.forEach((flower, index) => {
@@ -697,15 +721,40 @@ function awardWeeklyMilestones(sessions, week, previousRewards) {
   const old = previousRewards[week] || {};
   const earned = [];
   const updatedWeek = { ...old };
-  if (!old.consistency && practiceDays >= state.expectedPracticeDays) {
+  const weeklyTargetMinutes = Number.isInteger(old.weeklyTargetMinutes) ? old.weeklyTargetMinutes : state.weeklyTargetMinutes;
+  const expectedPracticeDays = Number.isInteger(old.expectedPracticeDays) ? old.expectedPracticeDays : state.expectedPracticeDays;
+  if (!old.consistency && practiceDays >= expectedPracticeDays) {
     updatedWeek.consistency = true;
     earned.push("consistency");
   }
-  if (!old.goal && minutes >= state.weeklyTargetMinutes) {
+  if (!old.goal && minutes >= weeklyTargetMinutes) {
     updatedWeek.goal = true;
     earned.push("weekly goal");
   }
-  return { earned, updatedWeek };
+  updatedWeek.weeklyTargetMinutes = weeklyTargetMinutes;
+  updatedWeek.expectedPracticeDays = expectedPracticeDays;
+  const alreadyAwarded = weekSessions.reduce((total, session) => total + session.tokensEarned, 0);
+  const availableWeeklyAwards = Math.max(0, MAX_WEEKLY_TOKENS - alreadyAwarded);
+  return { earned: earned.slice(0, availableWeeklyAwards), updatedWeek };
+}
+function snapshotExistingWeeklyGoals(sessions, weeklyRewards) {
+  const updatedRewards = { ...weeklyRewards };
+  const weeks = new Set(sessions.map((session) => startOfWeek(session.date)));
+  for (const week of weeks) {
+    const existing = updatedRewards[week] || {};
+    if (Number.isInteger(existing.weeklyTargetMinutes) && Number.isInteger(existing.expectedPracticeDays)) continue;
+    const weekSessions = sessionsInWeek(week, sessions);
+    const minutes = weekSessions.reduce((total, session) => total + session.minutes, 0);
+    const days = new Set(weekSessions.map((session) => session.date)).size;
+    updatedRewards[week] = {
+      ...existing,
+      weeklyTargetMinutes: Number.isInteger(existing.weeklyTargetMinutes) ? existing.weeklyTargetMinutes : state.weeklyTargetMinutes,
+      expectedPracticeDays: Number.isInteger(existing.expectedPracticeDays) ? existing.expectedPracticeDays : state.expectedPracticeDays,
+      goal: Boolean(existing.goal) || minutes >= state.weeklyTargetMinutes,
+      consistency: Boolean(existing.consistency) || days >= state.expectedPracticeDays,
+    };
+  }
+  return updatedRewards;
 }
 function updateGoalDialog() {
   document.querySelector("#weekly-target-input").value = state.weeklyTargetMinutes;
@@ -827,7 +876,12 @@ goalForm.addEventListener("submit", (event) => {
     return;
   }
   const previousState = state;
-  state = { ...state, weeklyTargetMinutes, expectedPracticeDays };
+  state = {
+    ...state,
+    weeklyTargetMinutes,
+    expectedPracticeDays,
+    weeklyRewards: snapshotExistingWeeklyGoals(state.sessions, state.weeklyRewards),
+  };
   if (!saveState()) {
     state = previousState;
     showToast(storageReadFailed
@@ -905,34 +959,51 @@ form.addEventListener("submit", (event) => {
     : "";
   showToast(`${minutes} minutes added to your ${plantName.toLowerCase()}'s growth.${rewardMessage}`);
 });
+const flowersBeingUnlocked = new Set();
 document.querySelector("#mini-garden").addEventListener("click", (event) => {
   const button = event.target.closest("[data-flower]");
   if (!button) return;
   const flower = FLOWERS.find((item) => item.name === button.dataset.flower);
-  if (!flower || state.unlocked.includes(flower.name)) return;
-  if (state.seedTokens < flower.cost) {
-    showToast(`You need ${flower.cost - state.seedTokens} more seed tokens to unlock ${flower.name.toLowerCase()}.`);
+  if (!flower || state.unlocked.includes(flower.name) || flowersBeingUnlocked.has(flower.name)) return;
+  const availableTokens = parseTokenBalance(state.seedTokens);
+  if (!Number.isSafeInteger(flower.cost) || flower.cost < 0 || availableTokens === null) {
+    console.error("Flower unlock stopped because its cost or the saved token balance is invalid.", {
+      flower: flower.name,
+      cost: flower.cost,
+      availableTokens: state.seedTokens,
+    });
+    showToast("Your seed token balance could not be verified. No tokens were spent.");
     return;
   }
+  if (availableTokens < flower.cost) {
+    const needed = flower.cost - availableTokens;
+    showToast(`You need ${needed} more seed token${needed === 1 ? "" : "s"} to unlock ${flower.name.toLowerCase()}.`);
+    return;
+  }
+  flowersBeingUnlocked.add(flower.name);
+  button.disabled = true;
   const previousState = state;
   const plant = createPlant(flower.name, 0);
   state = {
     ...state,
-    seedTokens: state.seedTokens - flower.cost,
+    seedTokens: availableTokens - flower.cost,
     unlocked: [...state.unlocked, flower.name],
     garden: [...state.garden, plant],
     activePlantId: plant.id,
   };
   if (!saveState()) {
     state = previousState;
+    flowersBeingUnlocked.delete(flower.name);
+    button.disabled = false;
     showToast(storageReadFailed
       ? "Saved data could not be read, so this seed was not unlocked to protect it."
       : "Your browser couldn't save this garden change. Check available storage and try again.");
     return;
   }
   render();
+  flowersBeingUnlocked.delete(flower.name);
   if (storageReadFailed) warnStorageUnavailable();
-  showToast(`${flower.name} seed planted. Your practice will help it grow next.`);
+  showToast(`${flower.name} unlocked and planted. Your practice will help it grow next.`);
 });
 function showPage() {
   const page = {
