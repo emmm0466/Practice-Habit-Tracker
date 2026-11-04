@@ -5,7 +5,12 @@ const FLOWERS = [
   { name: "Daisy", cost: 50, petalColor: "#fffaf0" },
   { name: "Lavender", cost: 75, petalColor: "#9c83c5" },
 ];
+const DEMO_PROFILE = Object.freeze({
+  student: Object.freeze({ firstName: "Emily" }),
+  teacher: Object.freeze({ displayName: "Miss Costa" }),
+});
 const GROWTH_STAGES = ["Seed", "Sprout", "Growing stalk", "Bud", "Developing flower", "Full bloom"];
+const GROWTH_GOAL_MINUTES = 300;
 const dialog = document.querySelector("#practice-dialog");
 const goalDialog = document.querySelector("#goal-dialog");
 const form = document.querySelector("#practice-form");
@@ -36,12 +41,12 @@ function calendarDaysBetween(start, end) {
 function newId() {
   return globalThis.crypto?.randomUUID?.() || `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 }
-function createPlant(flower, minutes, targetMinutes) {
+function createPlant(flower, minutes) {
   return {
     id: newId(),
     flower,
     growthMinutes: minutes,
-    growthGoalMinutes: Math.max(60, targetMinutes * 5),
+    growthGoalMinutes: GROWTH_GOAL_MINUTES,
     growthFloor: 0,
   };
 }
@@ -52,8 +57,10 @@ function normalizeSession(session) {
     id: typeof session.id === "string" ? session.id : newId(),
     date: session.date,
     minutes: session.minutes,
+    instrument: typeof session.instrument === "string" && session.instrument.trim() ? session.instrument : "Violin",
     focus: typeof session.focus === "string" ? session.focus : "Practice",
     note: typeof session.note === "string" ? session.note : "",
+    teacherFeedback: typeof session.teacherFeedback === "string" ? session.teacherFeedback : "",
     createdAt: typeof session.createdAt === "string" ? session.createdAt : "1970-01-01T00:00:00.000Z",
     tokensEarned: Number.isInteger(session.tokensEarned) ? Math.max(0, session.tokensEarned) : 0,
   };
@@ -127,7 +134,7 @@ function loadState() {
         growthMinutes: Number.isFinite(plant.growthMinutes) ? Math.max(0, plant.growthMinutes) : 0,
         growthGoalMinutes: Number.isFinite(plant.growthGoalMinutes)
           ? Math.max(60, plant.growthGoalMinutes)
-          : Math.max(60, weeklyTargetMinutes * 5),
+          : GROWTH_GOAL_MINUTES,
         growthFloor: Number.isFinite(plant.growthFloor)
           ? Math.min(1, Math.max(0, plant.growthFloor))
           : 0,
@@ -135,12 +142,15 @@ function loadState() {
   } else {
     const previousPracticeMinutes = sessions.reduce((total, session) => total + session.minutes, 0);
     garden = unlocked.map((flower) =>
-      createPlant(flower, flower === "Sunflower" ? previousPracticeMinutes : 0, weeklyTargetMinutes)
+      createPlant(flower, flower === "Sunflower" ? previousPracticeMinutes : 0)
     );
   }
   for (const flower of unlocked) {
-    if (!garden.some((plant) => plant.flower === flower)) garden.push(createPlant(flower, 0, weeklyTargetMinutes));
+    if (!garden.some((plant) => plant.flower === flower)) garden.push(createPlant(flower, 0));
   }
+  const activePlantId = garden.some((plant) => plant.id === saved.activePlantId)
+    ? saved.activePlantId
+    : garden.find((plant) => growthFor(plant).stage < GROWTH_STAGES.length - 1)?.id || garden[garden.length - 1]?.id;
 
   return {
     version: 2,
@@ -150,12 +160,14 @@ function loadState() {
     weeklyTargetMinutes,
     expectedPracticeDays,
     garden,
+    activePlantId,
     weeklyRewards: saved.weeklyRewards && typeof saved.weeklyRewards === "object" && !Array.isArray(saved.weeklyRewards)
       ? saved.weeklyRewards
       : {},
   };
 }
 function createInitialState() {
+  const sunflower = createPlant("Sunflower", 0);
   return {
     version: 2,
     sessions: [],
@@ -163,11 +175,16 @@ function createInitialState() {
     unlocked: ["Sunflower"],
     weeklyTargetMinutes: 60,
     expectedPracticeDays: 3,
-    garden: [createPlant("Sunflower", 0, 60)],
+    garden: [sunflower],
+    activePlantId: sunflower.id,
     weeklyRewards: {},
   };
 }
 let state = loadState();
+let historyCalendarMonth = new Date(`${todayKey.slice(0, 7)}-01T12:00:00`);
+let historyRangeStart = null;
+let historyRangeEnd = null;
+let historyRangeAwaitingEnd = false;
 let storageWarningShown = false;
 function warnStorageUnavailable() {
   if (storageWarningShown) return;
@@ -209,6 +226,119 @@ function startOfWeek(dateString) {
 function sessionsForCurrentWeek() {
   return sessionsInWeek(startOfWeek(todayKey)).filter((session) => session.date <= todayKey);
 }
+function weekLabel(weekStart) {
+  const start = new Date(`${weekStart}T12:00:00`);
+  const end = new Date(start);
+  end.setDate(end.getDate() + 6);
+  const options = { month: "short", day: "numeric" };
+  return `${start.toLocaleDateString(undefined, options)} – ${end.toLocaleDateString(undefined, { ...options, year: "numeric" })}`;
+}
+function availablePracticeWeeks() {
+  const weeks = new Set([startOfWeek(todayKey), ...state.sessions.map((session) => startOfWeek(session.date))]);
+  return [...weeks].sort((a, b) => b.localeCompare(a));
+}
+function historyDateRange() {
+  const currentWeekStart = startOfWeek(todayKey);
+  if (document.querySelector("#week-history-select").value === "this-week") {
+    const end = new Date(`${currentWeekStart}T12:00:00`);
+    end.setDate(end.getDate() + 6);
+    return { start: currentWeekStart, end: dateKey(end), label: `This Week · ${weekLabel(currentWeekStart)}` };
+  }
+  if (document.querySelector("#week-history-select").value === "last-week") {
+    const start = new Date(`${currentWeekStart}T12:00:00`);
+    start.setDate(start.getDate() - 7);
+    const startKey = dateKey(start);
+    const end = new Date(start);
+    end.setDate(end.getDate() + 6);
+    return { start: startKey, end: dateKey(end), label: `Last Week · ${weekLabel(startKey)}` };
+  }
+  if (document.querySelector("#week-history-select").value === "this-month") {
+    const start = `${todayKey.slice(0, 7)}-01`;
+    const [year, month] = todayKey.split("-").map(Number);
+    const end = dateKey(new Date(year, month, 0, 12));
+    return { start, end, label: `This Month · ${dateLabel(start, { month: "long", year: "numeric" })}` };
+  }
+  if (document.querySelector("#week-history-select").value === "last-month") {
+    const [year, month] = todayKey.split("-").map(Number);
+    const start = dateKey(new Date(year, month - 2, 1, 12));
+    const end = dateKey(new Date(year, month - 1, 0, 12));
+    return { start, end, label: `Last Month · ${dateLabel(start, { month: "long", year: "numeric" })}` };
+  }
+  const start = historyRangeStart || todayKey;
+  const end = historyRangeEnd || start;
+  const first = start <= end ? start : end;
+  const last = start <= end ? end : start;
+  const label = first === last
+    ? dateLabel(first, { month: "short", day: "numeric", year: "numeric" })
+    : `${dateLabel(first, { month: "short", day: "numeric", year: "numeric" })} – ${dateLabel(last, { month: "short", day: "numeric", year: "numeric" })}`;
+  return { start: first, end: last, label: `Choose Dates · ${label}` };
+}
+function renderHistoryCalendar() {
+  const month = historyCalendarMonth;
+  const year = month.getFullYear();
+  const monthIndex = month.getMonth();
+  const firstDay = new Date(year, monthIndex, 1, 12);
+  const daysInMonth = new Date(year, monthIndex + 1, 0, 12).getDate();
+  const leadingDays = (firstDay.getDay() + 6) % 7;
+  const sessionsByDate = new Map();
+  for (const session of state.sessions) {
+    sessionsByDate.set(session.date, (sessionsByDate.get(session.date) || 0) + 1);
+  }
+  document.querySelector("#history-calendar-month").textContent = month.toLocaleDateString(undefined, { month: "long", year: "numeric" });
+  const cells = Array.from({ length: leadingDays }, () => '<span class="history-calendar-blank" aria-hidden="true"></span>');
+  for (let day = 1; day <= daysInMonth; day += 1) {
+    const key = dateKey(new Date(year, monthIndex, day, 12));
+    const isStart = key === historyRangeStart;
+    const isEnd = key === historyRangeEnd;
+    const inRange = historyRangeStart && historyRangeEnd
+      && key >= (historyRangeStart < historyRangeEnd ? historyRangeStart : historyRangeEnd)
+      && key <= (historyRangeStart < historyRangeEnd ? historyRangeEnd : historyRangeStart);
+    const count = sessionsByDate.get(key) || 0;
+    const classes = [
+      "history-calendar-day",
+      inRange ? "is-range" : "",
+      isStart ? "is-range-start" : "",
+      isEnd ? "is-range-end" : "",
+      count ? "has-practice" : "",
+      key === todayKey ? "is-today" : "",
+    ].filter(Boolean).join(" ");
+    const practiceLabel = count ? `, ${count} practice ${count === 1 ? "session" : "sessions"}` : ", no practice sessions";
+    cells.push(`<button class="${classes}" type="button" role="gridcell" data-history-date="${key}" aria-label="${dateLabel(key, { weekday: "long", month: "long", day: "numeric", year: "numeric" })}${practiceLabel}" aria-pressed="${isStart || isEnd}"><span>${day}</span>${count ? '<small aria-hidden="true">✿</small>' : ""}</button>`);
+  }
+  document.querySelector("#history-calendar-days").innerHTML = cells.join("");
+  document.querySelector("#history-range-help").textContent = historyRangeAwaitingEnd
+    ? `Start date: ${dateLabel(historyRangeStart)}. Choose an end date, or choose another date to start over.`
+    : historyRangeStart && historyRangeEnd
+      ? "Choose another date to start a new range."
+      : "Choose a date, then choose another date to set a range.";
+}
+function renderWeekHistory() {
+  const select = document.querySelector("#week-history-select");
+  if (!select) return;
+  const period = select.value || "this-week";
+  const range = historyDateRange();
+  const calendar = document.querySelector("#history-calendar");
+  calendar.hidden = period !== "custom";
+  if (period === "custom") renderHistoryCalendar();
+  const sessions = state.sessions
+    .filter((session) => session.date >= range.start && session.date <= range.end)
+    .sort((a, b) => b.date.localeCompare(a.date) || b.createdAt.localeCompare(a.createdAt));
+  const totalMinutes = sessions.reduce((total, session) => total + session.minutes, 0);
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+  const totalTime = hours ? `${hours} hr${hours === 1 ? "" : "s"}${minutes ? ` ${minutes} min` : ""}` : `${totalMinutes} min`;
+  const practiceDays = new Set(sessions.map((session) => session.date)).size;
+  document.querySelector("#history-period-summary").textContent = range.label;
+  document.querySelector("#history-session-count").textContent = sessions.length;
+  document.querySelector("#history-total-time").textContent = totalTime;
+  document.querySelector("#history-day-count").textContent = practiceDays;
+  const trigger = document.querySelector("#week-link");
+  trigger.firstChild.textContent = period === "custom" ? "Choose Dates " : `${select.options[select.selectedIndex].text} `;
+  const list = document.querySelector("#week-history-list");
+  list.innerHTML = sessions.length
+    ? sessions.map((session) => `<article class="week-history-entry"><strong>${dateLabel(session.date, { weekday: "short", month: "short", day: "numeric", year: "numeric" })}</strong><span>${session.minutes} min · ${escapeHtml(session.instrument)} · ${escapeHtml(session.focus)}</span>${session.note ? `<p class="history-session-note"><strong>Your note:</strong> ${escapeHtml(session.note)}</p>` : ""}</article>`).join("")
+    : '<p class="empty-log">No practice sessions recorded during this period. Every new session is another step towards growing your garden!</p>';
+}
 function renderWeek() {
   const monday = new Date(`${startOfWeek(todayKey)}T12:00:00`);
   const days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
@@ -228,7 +358,6 @@ function renderWeek() {
   document.querySelector("#weekly-target").textContent = state.weeklyTargetMinutes;
   document.querySelector("#expected-days").textContent = state.expectedPracticeDays;
   document.querySelector("#week-minutes").textContent = `${total} min`;
-  document.querySelector("#leaderboard-minutes").textContent = total;
   const progressBar = document.querySelector(".goal-progress");
   progressBar.setAttribute("aria-valuemax", state.weeklyTargetMinutes);
   progressBar.setAttribute("aria-valuenow", Math.min(total, state.weeklyTargetMinutes));
@@ -236,12 +365,13 @@ function renderWeek() {
   document.querySelector("#goal-progress-fill").style.width = `${percent}%`;
   document.querySelector("#goal-percent").textContent = `${percent}%`;
   renderFriends(total);
+  renderWeekHistory();
 }
 function renderFriends(studentMinutes) {
   const friends = [
     { name: "Lily Chen", instrument: "Flute", minutes: 85, initial: "L", avatar: "avatar-peach", flower: "🌼" },
     { name: "Alex Rivera", instrument: "Piano", minutes: 70, initial: "A", avatar: "avatar-blue", flower: "🌷" },
-    { name: "Sam Taylor", instrument: "Violin", minutes: studentMinutes, initial: "S", avatar: "avatar-green", flower: "🌱", isYou: true },
+    { name: DEMO_PROFILE.student.firstName, instrument: "Violin", minutes: studentMinutes, initial: DEMO_PROFILE.student.firstName[0].toUpperCase(), avatar: "avatar-green", flower: "🌱", isYou: true },
     { name: "Noah Park", instrument: "Cello", minutes: 35, initial: "N", avatar: "avatar-lilac", flower: "🌿" },
   ].sort((a, b) => b.minutes - a.minutes);
   document.querySelector("#friend-list").innerHTML = friends.map((friend, index) => {
@@ -281,6 +411,8 @@ function getPlantHealth() {
   return { score, status: "tired", label: "Ready to recover" };
 }
 function activePlant() {
+  const selected = state.garden.find((plant) => plant.id === state.activePlantId);
+  if (selected && growthFor(selected).stage < GROWTH_STAGES.length - 1) return selected;
   return state.garden.find((plant) => growthFor(plant).stage < GROWTH_STAGES.length - 1) || null;
 }
 function plantPetals(flower) {
@@ -332,12 +464,14 @@ function plantSvg(plant, health, id) {
 }
 function renderFlower() {
   const health = getPlantHealth();
-  const plant = activePlant() || state.garden[state.garden.length - 1];
+  const plant = activePlant() || state.garden.find((item) => item.id === state.activePlantId) || state.garden[state.garden.length - 1];
   const target = document.querySelector("#hero-flower");
   if (!plant) {
     target.innerHTML = "";
     document.querySelector("#hero-plant-name").textContent = "Garden in bloom";
     document.querySelector("#flower-stage").textContent = "All flowers grown";
+    document.querySelector("#flower-progress").setAttribute("aria-valuenow", "100");
+    document.querySelector("#flower-progress-fill").style.width = "100%";
     document.querySelector("#streak-count").textContent = `${getStreak()} ${getStreak() === 1 ? "day" : "days"}`;
     document.querySelector("#token-count").textContent = `${state.seedTokens} seed tokens`;
     return;
@@ -352,14 +486,19 @@ function renderFlower() {
   const svg = target.querySelector(".plant-svg");
   svg.dataset.plantId = plant.id;
   updatePlantSvg(svg, plant, health);
-  document.querySelector("#hero-plant-name").textContent = `${flower.name}${growth.stage === 5 ? "" : " seed"}`;
+  document.querySelector("#hero-plant-name").textContent = flower.name;
   document.querySelector("#flower-stage").textContent = `${GROWTH_STAGES[growth.stage]} · ${growth.percent}% · ${health.label}`;
+  document.querySelector("#flower-progress").setAttribute("aria-valuenow", growth.percent);
+  document.querySelector("#flower-progress").setAttribute("aria-valuetext", `${growth.percent}% grown`);
+  document.querySelector("#flower-progress-fill").style.width = `${growth.percent}%`;
   document.querySelector("#streak-count").textContent = `${getStreak()} ${getStreak() === 1 ? "day" : "days"}`;
   document.querySelector("#token-count").textContent = `${state.seedTokens} seed tokens`;
 }
 function renderLog() {
   const list = document.querySelector("#log-list");
-  const entries = [...state.sessions].sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, 4);
+  const entries = [...state.sessions]
+    .sort((a, b) => b.date.localeCompare(a.date) || b.createdAt.localeCompare(a.createdAt))
+    .slice(0, 4);
   if (!entries.length) {
     list.innerHTML = '<div class="empty-log">Your first practice session is waiting to be planted. 🌱</div>';
     return;
@@ -367,9 +506,116 @@ function renderLog() {
   list.innerHTML = entries.map((session) => {
     const day = session.date === todayKey ? "Today" : dateLabel(session.date, { weekday: "short", month: "short", day: "numeric" });
     const note = session.note ? ` · ${escapeHtml(session.note)}` : "";
-    const reward = session.tokensEarned ? `<small>+${session.tokensEarned} seed ${session.tokensEarned === 1 ? "token" : "tokens"}</small>` : "<small>Growth added to your seed</small>";
-    return `<article class="log-entry"><div class="log-icon">♫</div><div class="log-details"><strong>${escapeHtml(session.focus)}</strong><span>${day}${note}</span></div><div class="log-duration">${session.minutes} min${reward}</div></article>`;
+    const reward = session.tokensEarned ? `<small>+${session.tokensEarned} seed ${session.tokensEarned === 1 ? "token" : "tokens"}</small>` : "<small>Practice session saved</small>";
+    return `<article class="log-entry"><div class="log-icon">♫</div><div class="log-details"><strong>${escapeHtml(session.focus)}</strong><span>${day} · ${escapeHtml(session.instrument)}${note}</span></div><div class="log-duration">${session.minutes} min${reward}</div></article>`;
   }).join("");
+}
+const ENCOURAGEMENTS = [
+  "Keep practicing!",
+  "Stay sharp and keep shining!",
+  "Tune into happiness.",
+  "Don't fret, practice makes perfect!",
+  "Keep up the note-worthy work.",
+  "You are making treble-mendous progress!",
+  "Don't stop beating your personal bests.",
+  "Every minute you practice scales up your talent.",
+];
+function sessionEncouragements(sessions) {
+  let previousIndex = -1;
+  return sessions.map((session) => {
+    let hash = 0;
+    for (const char of session.id) hash = (hash * 31 + char.charCodeAt(0)) >>> 0;
+    let index = hash % ENCOURAGEMENTS.length;
+    if (index === previousIndex) index = (index + 1) % ENCOURAGEMENTS.length;
+    previousIndex = index;
+    return ENCOURAGEMENTS[index];
+  });
+}
+function renderCompleteLog() {
+  const list = document.querySelector("#complete-log-list");
+  const filter = document.querySelector("#log-week-filter");
+  const weeks = availablePracticeWeeks();
+  const previousFilter = filter.value;
+  filter.innerHTML = `<option value="all">All weeks</option>${weeks.map((week) => `<option value="${week}">${week === startOfWeek(todayKey) ? "This week" : weekLabel(week)}</option>`).join("")}`;
+  filter.value = weeks.includes(previousFilter) || previousFilter === "all" ? previousFilter : "all";
+  const sessions = [...state.sessions]
+    .filter((session) => filter.value === "all" || startOfWeek(session.date) === filter.value)
+    .sort((a, b) => b.date.localeCompare(a.date) || b.createdAt.localeCompare(a.createdAt));
+  if (!sessions.length) {
+    list.innerHTML = '<div class="empty-log">No practice sessions yet. Your next note-worthy moment is waiting.</div>';
+    return;
+  }
+  const encouragements = sessionEncouragements(sessions);
+  list.innerHTML = sessions.map((session, index) => {
+    const note = session.note ? escapeHtml(session.note) : "No student note added.";
+    const feedback = session.teacherFeedback
+      ? escapeHtml(session.teacherFeedback)
+      : "No teacher feedback has been recorded for this session.";
+    return `<article class="complete-log-entry">
+      <div class="log-entry"><div class="log-icon">♫</div><div class="log-details"><strong>${escapeHtml(session.focus)}</strong><span>${dateLabel(session.date, { weekday: "long", month: "long", day: "numeric", year: "numeric" })} · ${escapeHtml(session.instrument)}</span></div><div class="log-duration">${session.minutes} min</div></div>
+      <p class="practice-encouragement">${encouragements[index]}</p>
+      <div class="session-notes"><p><strong>Your practice notes</strong><span>${note}</span></p><p class="teacher-session-feedback"><strong>Teacher feedback</strong><span>${feedback}</span></p></div>
+    </article>`;
+  }).join("");
+}
+function renderGardenPage() {
+  const container = document.querySelector("#full-garden");
+  const health = getPlantHealth();
+  const active = activePlant();
+  document.querySelector("#full-collection-count").textContent = `${state.garden.length} ${state.garden.length === 1 ? "flower" : "flowers"}`;
+  if (!state.garden.length) {
+    container.innerHTML = '<p class="empty-log">Your first seed is ready when you are.</p>';
+    return;
+  }
+  container.innerHTML = state.garden.map((plant) => {
+    const growth = growthFor(plant);
+    const stage = GROWTH_STAGES[growth.stage];
+    const stageClass = ["seed", "sprout", "stalk", "bud", "developing", "bloom"][growth.stage];
+    const isActive = plant.id === active?.id;
+    const featureControl = growth.stage < GROWTH_STAGES.length - 1
+      ? `<button class="garden-feature-button" type="button" data-feature-plant="${escapeHtml(plant.id)}">${isActive ? "Currently growing" : "Grow this flower"}</button>`
+      : '<span class="garden-bloom-label">A lasting bloom</span>';
+    return `<article class="garden-plant garden-page-plant growth-${stageClass} plant-health-${health.status}${isActive ? " is-active" : ""}" data-plant-id="${escapeHtml(plant.id)}" aria-label="${escapeHtml(plant.flower)}, ${stage}, ${health.label}">
+      ${plantSvg(plant, health, `garden-page-${plant.id}`)}
+      <span class="garden-plant-name">${escapeHtml(plant.flower)}</span>
+      <span class="garden-plant-status">${stage} · ${growth.percent}%<br>${health.label}</span>
+      <span class="garden-plant-progress" role="progressbar" aria-label="${escapeHtml(plant.flower)} growth" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${growth.percent}"><span style="width:${growth.percent}%"></span></span>
+      ${featureControl}
+    </article>`;
+  }).join("");
+  container.querySelectorAll(".plant-svg").forEach((svg) => {
+    const plant = state.garden.find((item) => item.id === svg.closest("[data-plant-id]")?.dataset.plantId);
+    if (plant) updatePlantSvg(svg, plant, health);
+  });
+}
+const SAMPLE_CLASSMATES = [
+  { id: "lily", name: "Lily Chen", instrument: "Flute", minutes: 85, initial: "L", avatar: "avatar-peach", plants: [{ flower: "Daisy", growthMinutes: 390, growthGoalMinutes: 420 }, { flower: "Sunflower", growthMinutes: 95, growthGoalMinutes: 300 }], achievement: "Two flowers growing" },
+  { id: "alex", name: "Alex Rivera", instrument: "Piano", minutes: 70, initial: "A", avatar: "avatar-blue", plants: [{ flower: "Tulip", growthMinutes: 400, growthGoalMinutes: 400 }], achievement: "A new bloom" },
+  { id: "noah", name: "Noah Park", instrument: "Cello", minutes: 35, initial: "N", avatar: "avatar-lilac", plants: [{ flower: "Lavender", growthMinutes: 150, growthGoalMinutes: 400 }], achievement: "Building a steady habit" },
+];
+let selectedClassmateId = SAMPLE_CLASSMATES[0].id;
+function renderClassmates() {
+  const roster = document.querySelector("#classmates-roster");
+  const selected = SAMPLE_CLASSMATES.find((friend) => friend.id === selectedClassmateId) || SAMPLE_CLASSMATES[0];
+  roster.innerHTML = SAMPLE_CLASSMATES.map((friend) =>
+    `<button class="friend-row classmate-choice${friend.id === selected.id ? " is-selected" : ""}" type="button" data-sample-classmate="${friend.id}" aria-pressed="${friend.id === selected.id}"><span class="friend-avatar ${friend.avatar}">${friend.initial}</span><span class="friend-info"><strong>${friend.name}</strong><small>${friend.instrument} · ${friend.minutes} min this week</small></span><span class="friend-rank">›</span></button>`
+  ).join("");
+  document.querySelector("#classmate-garden-heading").textContent = `${selected.name}'s garden`;
+  document.querySelector("#classmate-achievement").textContent = "Sample";
+  document.querySelector("#classmate-progress").textContent = `${selected.instrument} · ${selected.minutes} minutes this week · ${selected.achievement}`;
+  document.querySelector("#classmate-garden").innerHTML = selected.plants.map((plant, index) => {
+    const growth = growthFor(plant);
+    const health = { status: "healthy", label: "Healthy" };
+    const stage = GROWTH_STAGES[growth.stage];
+    const stageClass = ["seed", "sprout", "stalk", "bud", "developing", "bloom"][growth.stage];
+    return `<article class="garden-plant garden-page-plant growth-${stageClass} plant-health-healthy">
+      ${plantSvg(plant, health, `sample-${selected.id}-${index}`)}
+      <span class="garden-plant-name">${plant.flower}</span>
+      <span class="garden-plant-status">${stage} · ${growth.percent}%<br>Healthy</span>
+      <span class="garden-plant-progress" role="progressbar" aria-label="${plant.flower} sample growth" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${growth.percent}"><span style="width:${growth.percent}%"></span></span>
+    </article>`;
+  }).join("");
+  document.querySelectorAll("#classmate-garden .plant-svg").forEach((svg, index) => updatePlantSvg(svg, selected.plants[index], { status: "healthy", label: "Healthy" }));
 }
 function escapeHtml(value) {
   return String(value).replace(/[&<>"']/g, (char) => ({
@@ -440,6 +686,9 @@ function render() {
   renderFlower();
   renderLog();
   renderCollection();
+  renderCompleteLog();
+  renderGardenPage();
+  renderClassmates();
 }
 function awardWeeklyMilestones(sessions, week, previousRewards) {
   const weekSessions = sessionsInWeek(week, sessions);
@@ -465,8 +714,93 @@ function updateGoalDialog() {
 
 document.querySelector("#today-label").textContent = new Date().toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" });
 document.querySelector(".eyebrow").innerHTML = `${new Date().toLocaleDateString(undefined, { weekday: "long", day: "numeric", month: "long" }).toUpperCase()} <span class="eyebrow-dot">✳</span> A FRESH START`;
+document.querySelector("#dashboard-greeting").textContent = `${new Date().getHours() < 12 ? "Good morning" : new Date().getHours() < 18 ? "Good afternoon" : "Good evening"}, ${DEMO_PROFILE.student.firstName}`;
+document.querySelector("#student-display-name").textContent = DEMO_PROFILE.student.firstName;
+document.querySelector("#student-avatar").textContent = DEMO_PROFILE.student.firstName[0].toUpperCase();
+document.querySelector("#teacher-display-name").textContent = DEMO_PROFILE.teacher.displayName;
+document.querySelector("#teacher-avatar").textContent = DEMO_PROFILE.teacher.displayName[0].toUpperCase();
 document.querySelector("#practice-date").value = todayKey;
 document.querySelector("#practice-date").max = todayKey;
+document.querySelector("#week-history-select").addEventListener("change", () => {
+  const select = document.querySelector("#week-history-select");
+  if (select.value === "custom" && !historyRangeStart) {
+    historyRangeStart = todayKey;
+    historyRangeEnd = todayKey;
+    historyRangeAwaitingEnd = false;
+  }
+  renderWeekHistory();
+});
+document.querySelector("#week-link").setAttribute("aria-expanded", "false");
+document.querySelector("#week-link").addEventListener("click", () => {
+  const panel = document.querySelector("#week-history-panel");
+  panel.hidden = !panel.hidden;
+  document.querySelector("#week-link").setAttribute("aria-expanded", String(!panel.hidden));
+  if (!panel.hidden) renderWeekHistory();
+});
+document.addEventListener("pointerdown", (event) => {
+  const panel = document.querySelector("#week-history-panel");
+  const trigger = document.querySelector("#week-link");
+  if (!panel.hidden && !panel.contains(event.target) && !trigger.contains(event.target)) {
+    panel.hidden = true;
+    trigger.setAttribute("aria-expanded", "false");
+  }
+});
+document.addEventListener("keydown", (event) => {
+  if (event.key !== "Escape") return;
+  const panel = document.querySelector("#week-history-panel");
+  if (panel.hidden) return;
+  panel.hidden = true;
+  document.querySelector("#week-link").setAttribute("aria-expanded", "false");
+  document.querySelector("#week-link").focus();
+});
+document.querySelector("#history-month-prev").addEventListener("click", () => {
+  historyCalendarMonth = new Date(historyCalendarMonth.getFullYear(), historyCalendarMonth.getMonth() - 1, 1, 12);
+  renderWeekHistory();
+});
+document.querySelector("#history-month-next").addEventListener("click", () => {
+  historyCalendarMonth = new Date(historyCalendarMonth.getFullYear(), historyCalendarMonth.getMonth() + 1, 1, 12);
+  renderWeekHistory();
+});
+document.querySelector("#history-calendar-days").addEventListener("click", (event) => {
+  const button = event.target.closest("[data-history-date]");
+  if (!button) return;
+  const selectedDate = button.dataset.historyDate;
+  if (!historyRangeStart || !historyRangeAwaitingEnd) {
+    historyRangeStart = selectedDate;
+    historyRangeEnd = selectedDate;
+    historyRangeAwaitingEnd = true;
+  } else if (selectedDate < historyRangeStart) {
+    historyRangeEnd = historyRangeStart;
+    historyRangeStart = selectedDate;
+    historyRangeAwaitingEnd = false;
+  } else {
+    historyRangeEnd = selectedDate;
+    historyRangeAwaitingEnd = false;
+  }
+  renderWeekHistory();
+});
+document.querySelector("#log-week-filter").addEventListener("change", renderCompleteLog);
+document.querySelector("#full-garden").addEventListener("click", (event) => {
+  const button = event.target.closest("[data-feature-plant]");
+  if (!button) return;
+  const plant = state.garden.find((item) => item.id === button.dataset.featurePlant);
+  if (!plant || growthFor(plant).stage >= GROWTH_STAGES.length - 1) return;
+  const previousState = state;
+  state = { ...state, activePlantId: plant.id };
+  if (!saveState()) {
+    state = previousState;
+    showToast("Your browser couldn't save this garden choice. Check available storage and try again.");
+    return;
+  }
+  render();
+  showToast(`${plant.flower} is now featured on your dashboard.`);
+});
+document.querySelector("#classmates-roster").addEventListener("click", (event) => {
+  const button = event.target.closest("[data-sample-classmate]");
+  if (!button) return;
+  selectedClassmateId = button.dataset.sampleClassmate;
+  renderClassmates();
+});
 document.querySelector("#open-practice").addEventListener("click", () => dialog.showModal());
 document.querySelector("#close-practice").addEventListener("click", () => dialog.close());
 dialog.addEventListener("click", (event) => {
@@ -493,12 +827,7 @@ goalForm.addEventListener("submit", (event) => {
     return;
   }
   const previousState = state;
-  const garden = state.garden.map((plant) => ({
-    ...plant,
-    growthGoalMinutes: Math.max(60, weeklyTargetMinutes * 5),
-    growthFloor: Math.max(plant.growthFloor || 0, growthFor(plant).progress),
-  }));
-  state = { ...state, weeklyTargetMinutes, expectedPracticeDays, garden };
+  state = { ...state, weeklyTargetMinutes, expectedPracticeDays };
   if (!saveState()) {
     state = previousState;
     showToast(storageReadFailed
@@ -517,8 +846,8 @@ form.addEventListener("submit", (event) => {
   const data = new FormData(form);
   const minutes = Number(data.get("minutes"));
   const date = String(data.get("date"));
-  if (!Number.isInteger(minutes) || minutes < 1 || minutes > 300 || !isDateKey(date) || date > todayKey) {
-    showToast("Choose a practice time from 1–300 minutes and a real date no later than today.");
+  if (!Number.isInteger(minutes) || minutes < 1 || minutes > 240 || !isDateKey(date) || date > todayKey) {
+    showToast("Choose a practice time from 1–240 minutes and a real date no later than today.");
     return;
   }
 
@@ -531,12 +860,13 @@ form.addEventListener("submit", (event) => {
     id: newId(),
     date,
     minutes,
+    instrument: String(data.get("instrument")),
     focus: String(data.get("focus")),
     note: String(data.get("note")).trim(),
     createdAt: new Date().toISOString(),
     tokensEarned: 0,
   };
-  const plant = state.garden.find((item) => growthFor(item).stage < GROWTH_STAGES.length - 1);
+  const plant = activePlant();
   const garden = plant
     ? state.garden.map((item) => item.id === plant.id ? { ...item, growthMinutes: item.growthMinutes + minutes } : item)
     : state.garden;
@@ -547,6 +877,7 @@ form.addEventListener("submit", (event) => {
     ...state,
     sessions,
     garden,
+    activePlantId: plant?.id || state.activePlantId,
     seedTokens: state.seedTokens + milestones.earned.length,
     weeklyRewards: { ...state.weeklyRewards, [week]: milestones.updatedWeek },
   };
@@ -584,11 +915,13 @@ document.querySelector("#mini-garden").addEventListener("click", (event) => {
     return;
   }
   const previousState = state;
+  const plant = createPlant(flower.name, 0);
   state = {
     ...state,
     seedTokens: state.seedTokens - flower.cost,
     unlocked: [...state.unlocked, flower.name],
-    garden: [...state.garden, createPlant(flower.name, 0, state.weeklyTargetMinutes)],
+    garden: [...state.garden, plant],
+    activePlantId: plant.id,
   };
   if (!saveState()) {
     state = previousState;
@@ -601,11 +934,24 @@ document.querySelector("#mini-garden").addEventListener("click", (event) => {
   if (storageReadFailed) warnStorageUnavailable();
   showToast(`${flower.name} seed planted. Your practice will help it grow next.`);
 });
-document.querySelector("#week-link").addEventListener("click", () => showToast("Your practice week starts on Monday."));
-document.querySelectorAll(".nav-link").forEach((link) => {
-  link.addEventListener("click", () => {
-    document.querySelectorAll(".nav-link").forEach((item) => item.classList.remove("active"));
-    link.classList.add("active");
+function showPage() {
+  const page = {
+    "#garden-page": "garden",
+    "#practice-log-page": "practice-log",
+    "#classmates-page": "classmates",
+  }[window.location.hash] || "dashboard";
+  const titles = { dashboard: "Dashboard", garden: "My garden", "practice-log": "Practice log", classmates: "Classmates" };
+  document.querySelectorAll("[data-page-view]").forEach((view) => {
+    view.hidden = view.dataset.pageView !== page;
   });
-});
+  document.querySelector("#page-title").textContent = titles[page];
+  document.querySelectorAll(".nav-link").forEach((link) => {
+    link.classList.toggle("active", link.dataset.page === page);
+  });
+  if (page === "garden") renderGardenPage();
+  if (page === "practice-log") renderCompleteLog();
+  if (page === "classmates") renderClassmates();
+}
+window.addEventListener("hashchange", showPage);
 render();
+showPage();

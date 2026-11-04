@@ -251,3 +251,95 @@ h1 { font-family: "Nunito", sans-serif; font-weight: 800; font-size: 32px; lette
   .plant-svg *, .garden-plant-progress span, .locked-seed { animation: none !important; transition: none !important; }
 }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; scroll-behavior: auto !important; } }
+
+.app-view[hidden], .week-history-panel[hidden] { display: none; }
+.mobile-nav { display: none; }
+.featured-progress { position: absolute; z-index: 2; left: 17px; right: 17px; bottom: 5px; height: 4px; overflow: hidden; border-radius: 5px; background: #e7eee2; }
+.featured-progress span { display: block; width: 0; height: 100%; border-radius: inherit; background: #7fa47b; transition: width .5s ease; }
+.week-history-panel { margin-top: 10px; padding: 11px 12px; border: 1px solid #eef0e9; border-radius: 9px; background: #fbfcf8; }
+.week-history-panel label, .log-filter-label { color: #788878; font-size: 9px; font-weight: 700; }
+.week-history-panel select, .log-filter-label select { margin-left: 7px; padding: 6px 9px; border: 1px solid #e4eadd; border-radius: 7px; background: #fff; color: #536457; font: inherit; font-size: 9px; }
+.week-history-list { display: grid; gap: 5px; margin-top: 9px; }
+.week-history-entry { display: flex; justify-content: space-between; gap: 10px; padding: 7px 9px; border-radius: 7px; background: #fff; color: #7a897b; font-size: 8px; }
+.week-history-entry strong { color: #526654; }
+.week-history-entry .empty-log { grid-column: 1 / -1; }
+.page-intro { margin-bottom: 20px; }
+.page-intro h1 { margin-bottom: 6px; }
+.full-garden-card { padding: 20px; }
+.full-garden { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 14px; margin-top: 17px; }
+.garden-page-plant { min-height: 225px; padding: 12px; gap: 6px; }
+.garden-page-plant .plant-svg { width: 112px; height: 136px; flex-basis: 136px; }
+.garden-page-plant .garden-plant-name { font-size: 11px; }
+.garden-page-plant .garden-plant-status { font-size: 9px; }
+.garden-page-plant .garden-plant-progress { width: 92%; height: 5px; }
+.garden-feature-button { margin-top: 3px; border: 1px solid #dfe9d9; border-radius: 7px; padding: 6px 10px; background: #f3f7ef; color: #5d795f; font: inherit; font-size: 8px; cursor: pointer; }
+.garden-feature-button:hover { background: #eaf2e5; }
+.garden-bloom-label { margin-top: 3px; color: #78936d; font-size: 8px; font-weight: 700; }
+.log-filter-label { display: flex; align-items: center; gap: 4px; white-space: nowrap; }
+.log-filter-label select { margin-left: 2px; }
+.complete-log-list { display: grid; gap: 11px; }
+.complete-log-entry { padding: 10px; border: 1px solid #eef0e9; border-radius: 11px; background: #fff; }
+.complete-log-entry .log-entry { padding: 2px 2px 9px; border: 0; border-radius: 0; border-bottom: 1px solid #f0f1ec; }
+.practice-encouragement { margin: 8px 0; color: #668368; font-size: 10px; font-weight: 700; }
+.session-notes { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.session-notes p { display: grid; gap: 4px; margin: 0; padding: 8px 9px; border-radius: 7px; background: #f8f9f5; color: #849087; font-size: 8px; line-height: 1.5; overflow-wrap: anywhere; }
+.session-notes strong { color: #667769; font-size: 8px; }
+.session-notes .teacher-session-feedback { background: #f7f4ed; }
+.session-notes .teacher-session-feedback strong { color: #987b5c; }
+.classmates-layout { display: grid; grid-template-columns: minmax(210px, .7fr) minmax(0, 1.3fr); gap: 16px; }
+.classmates-roster, .classmate-garden-card { min-width: 0; padding: 16px; }
+.classmate-choice { width: 100%; border: 0; background: transparent; text-align: left; cursor: pointer; font: inherit; }
+.classmate-choice:hover, .classmate-choice.is-selected { background: #f3f7ef; }
+.classmate-choice.is-selected { border-radius: 8px; }
+.classmate-garden { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 11px; margin-top: 13px; }
+.classmate-garden .garden-page-plant { min-height: 192px; }
+.classmate-garden .garden-page-plant .plant-svg { width: 92px; height: 112px; flex-basis: 112px; }
+
+@media (max-width: 610px) {
+  .mobile-nav { display: flex; gap: 3px; margin: -8px 0 16px; padding: 4px; border: 1px solid #e8ede3; border-radius: 10px; background: #fbfcf8; }
+  .mobile-nav .nav-link { width: auto; height: 36px; flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 1px; padding: 3px 1px; border-radius: 7px; color: #768178; font-size: 7px; line-height: 1; white-space: nowrap; }
+  .mobile-nav .nav-link span { width: auto; font-size: 13px; line-height: 1; }
+  .mobile-nav .nav-link.active { background: #eff5ed; color: #36684b; }
+  .full-garden { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; }
+  .garden-page-plant { min-height: 205px; padding: 8px 5px; }
+  .garden-page-plant .plant-svg { width: 92px; height: 112px; flex-basis: 112px; }
+  .classmates-layout { grid-template-columns: 1fr; }
+  .session-notes { grid-template-columns: 1fr; }
+  .week-history-entry { align-items: flex-start; flex-direction: column; gap: 3px; }
+  .featured-progress { left: 10px; right: 10px; }
+}
+
+.history-period-row { display: flex; align-items: center; justify-content: space-between; gap: 9px; }
+.history-period-row select { min-width: 125px; margin-left: 0; }
+.history-period-summary { margin-top: 11px; color: #788878; font-size: 9px; font-weight: 700; }
+.history-period-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; margin-top: 8px; }
+.history-period-stats > div { display: grid; gap: 3px; min-width: 0; padding: 8px; border-radius: 7px; background: #f3f7ef; }
+.history-period-stats strong { color: #536956; font-size: 10px; }
+.history-period-stats span { color: #8d998c; font-size: 8px; }
+.history-calendar { margin-top: 11px; padding-top: 9px; border-top: 1px solid #eef0e9; }
+.history-calendar[hidden] { display: none; }
+.history-calendar-heading { display: flex; align-items: center; justify-content: space-between; margin-bottom: 7px; }
+.history-calendar-heading h3 { margin: 0; color: #536956; font-size: 10px; font-weight: 700; }
+.history-month-button { width: 27px; height: 27px; border: 1px solid #e4eadd; border-radius: 7px; background: #fff; color: #668368; font: inherit; font-size: 16px; line-height: 1; cursor: pointer; }
+.history-month-button:hover { background: #eff5eb; }
+.history-calendar-weekdays, .history-calendar-days { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 3px; }
+.history-calendar-weekdays { margin-bottom: 3px; color: #9aa397; text-align: center; font-size: 7px; }
+.history-calendar-day, .history-calendar-blank { min-width: 0; min-height: 32px; }
+.history-calendar-day { position: relative; display: grid; place-items: center; border: 0; border-radius: 7px; background: transparent; color: #637264; font: inherit; font-size: 9px; cursor: pointer; }
+.history-calendar-day:hover { background: #eff5eb; }
+.history-calendar-day.is-range { background: #eff5eb; }
+.history-calendar-day.is-range-start, .history-calendar-day.is-range-end { background: #739775; color: #fff; }
+.history-calendar-day.is-today:not(.is-range-start):not(.is-range-end) { box-shadow: inset 0 0 0 1px #79a27a; }
+.history-calendar-day small { position: absolute; right: 2px; bottom: 0; color: #78a070; font-size: 6px; line-height: 1; }
+.history-calendar-day.is-range-start small, .history-calendar-day.is-range-end small { color: #fff; }
+.history-range-help { margin: 7px 0 0; color: #8d998c; font-size: 8px; line-height: 1.4; }
+.week-history-list { margin-top: 9px; }
+.week-history-entry { display: grid; grid-template-columns: minmax(0, .8fr) minmax(0, 1.2fr); align-items: center; }
+.history-session-note { grid-column: 1 / -1; margin: 0; padding-top: 5px; border-top: 1px solid #f0f1ec; color: #839083; line-height: 1.45; overflow-wrap: anywhere; }
+.history-session-note strong { color: #667769; }
+@media (max-width: 610px) {
+  .history-period-row { align-items: flex-start; flex-direction: column; }
+  .history-period-row select { width: 100%; }
+  .history-calendar-day, .history-calendar-blank { min-height: 30px; }
+  .week-history-entry { align-items: start; }
+}

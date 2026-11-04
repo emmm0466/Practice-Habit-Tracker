@@ -13,26 +13,26 @@
   <body>
     <div class="app-shell">
       <aside class="sidebar">
-        <a class="brand" href="#overview" aria-label="Petal Practice home">
+        <a class="brand" href="#dashboard" aria-label="Petal Practice home">
           <span class="brand-mark" aria-hidden="true">✿</span>
           <span>petal<span class="brand-light">practice</span></span>
         </a>
         <div class="sidebar-label">YOUR SPACE</div>
         <nav class="main-nav" aria-label="Main navigation">
-          <a class="nav-link active" href="#overview"><span>⌂</span> Overview</a>
-          <a class="nav-link" href="#my-garden"><span>❋</span> My garden</a>
-          <a class="nav-link" href="#practice-log"><span>◷</span> Practice log</a>
-          <a class="nav-link" href="#classmates"><span>♧</span> Classmates</a>
+          <a class="nav-link active" href="#dashboard" data-page="dashboard"><span>⌂</span> Dashboard</a>
+          <a class="nav-link" href="#garden-page" data-page="garden"><span>❋</span> My garden</a>
+          <a class="nav-link" href="#practice-log-page" data-page="practice-log"><span>◷</span> Practice log</a>
+          <a class="nav-link" href="#classmates-page" data-page="classmates"><span>♧</span> Classmates</a>
         </nav>
         <div class="sidebar-bottom">
           <div class="teacher-mini">
-            <div class="teacher-avatar">M</div>
-            <div><strong>Ms. Morgan</strong><span>Your teacher</span></div>
+            <div class="teacher-avatar" id="teacher-avatar"></div>
+            <div><strong id="teacher-display-name"></strong><span>Your teacher</span></div>
             <span class="online-dot"></span>
           </div>
           <button class="profile-button" type="button" aria-label="Student profile">
-            <div class="profile-avatar">S</div>
-            <div class="profile-copy"><strong>Sam Taylor</strong><span>Violin · Year 7</span></div>
+            <div class="profile-avatar" id="student-avatar"></div>
+            <div class="profile-copy"><strong id="student-display-name"></strong><span>Violin · Year 7</span></div>
             <span class="profile-more">···</span>
           </button>
         </div>
@@ -41,7 +41,7 @@
       <main class="main-content" id="overview">
         <header class="topbar">
           <div class="mobile-brand"><span class="brand-mark">✿</span> petal<span class="brand-light">practice</span></div>
-          <div class="breadcrumb">My learning <span>/</span> <strong>Overview</strong></div>
+          <div class="breadcrumb">My learning <span>/</span> <strong id="page-title">Dashboard</strong></div>
           <div class="topbar-right">
             <span class="today-label" id="today-label"></span>
             <button class="icon-button notification-button" type="button" aria-label="Notifications">♧<i></i></button>
@@ -49,10 +49,17 @@
         </header>
 
         <div class="page-wrap">
+          <nav class="mobile-nav" aria-label="Mobile navigation">
+            <a class="nav-link active" href="#dashboard" data-page="dashboard"><span>⌂</span> Dashboard</a>
+            <a class="nav-link" href="#garden-page" data-page="garden"><span>❋</span> Garden</a>
+            <a class="nav-link" href="#practice-log-page" data-page="practice-log"><span>◷</span> Practice log</a>
+            <a class="nav-link" href="#classmates-page" data-page="classmates"><span>♧</span> Classmates</a>
+          </nav>
+          <section class="app-view" id="dashboard-view" data-page-view="dashboard">
           <section class="welcome-row">
             <div>
               <p class="eyebrow">TUESDAY, 14 MAY 2024 <span class="eyebrow-dot">✳</span> A FRESH START</p>
-              <h1>Good afternoon, Sam <span class="wave">✦</span></h1>
+              <h1><span id="dashboard-greeting"></span> <span class="wave">✦</span></h1>
               <p class="welcome-subtitle">A little practice today goes a long way. Your garden is ready to grow.</p>
             </div>
             <button class="button button-primary log-practice-button" id="open-practice" type="button"><span>＋</span> Log practice</button>
@@ -77,6 +84,7 @@
               <div class="hero-plant-wrap" id="hero-flower" aria-live="polite"></div>
               <span class="sparkle sparkle-a">✦</span><span class="sparkle sparkle-b">✧</span><span class="sparkle sparkle-c">·</span>
               <div class="flower-level"><strong id="hero-plant-name">Sunflower seed</strong><small id="flower-stage">Seed · 0%</small></div>
+              <div class="featured-progress" id="flower-progress" role="progressbar" aria-label="Featured flower growth" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><span id="flower-progress-fill"></span></div>
             </div>
           </section>
 
@@ -85,7 +93,7 @@
               <section class="section-block" aria-labelledby="week-heading">
                 <div class="section-heading">
                   <div><h2 id="week-heading">Your week at a glance</h2><p>Little by little adds up to a lot.</p></div>
-                  <button class="text-button" type="button" id="week-link">This week <span>⌄</span></button>
+                  <button class="text-button" type="button" id="week-link" aria-controls="week-history-panel" aria-expanded="false">This Week <span>⌄</span></button>
                 </div>
                 <div class="week-card">
                   <div class="week-days" id="week-days"></div>
@@ -97,12 +105,43 @@
                     <button class="edit-goal-button" id="edit-goal" type="button" aria-label="Edit weekly practice goal">Edit</button>
                   </div>
                 </div>
+                <div class="week-history-panel" id="week-history-panel" hidden>
+                  <div class="history-period-row">
+                    <label for="week-history-select">Practice period</label>
+                    <select id="week-history-select" aria-label="Choose a practice period">
+                      <option value="this-week">This Week</option>
+                      <option value="last-week">Last Week</option>
+                      <option value="this-month">This Month</option>
+                      <option value="last-month">Last Month</option>
+                      <option value="custom">Choose Dates</option>
+                    </select>
+                  </div>
+                  <section class="history-calendar" id="history-calendar" aria-label="Choose a custom practice date range" hidden>
+                    <div class="history-calendar-heading">
+                      <button class="history-month-button" id="history-month-prev" type="button" aria-label="Previous month">‹</button>
+                      <h3 id="history-calendar-month" aria-live="polite"></h3>
+                      <button class="history-month-button" id="history-month-next" type="button" aria-label="Next month">›</button>
+                    </div>
+                    <div class="history-calendar-weekdays" aria-hidden="true">
+                      <span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span>
+                    </div>
+                    <div class="history-calendar-days" id="history-calendar-days" role="grid" aria-label="Calendar dates"></div>
+                    <p class="history-range-help" id="history-range-help">Choose a date, then choose another date to set a range.</p>
+                  </section>
+                  <div class="history-period-summary" id="history-period-summary" aria-live="polite"></div>
+                  <div class="history-period-stats" aria-label="Practice statistics for this period">
+                    <div><strong id="history-session-count">0</strong><span>sessions</span></div>
+                    <div><strong id="history-total-time">0 min</strong><span>practice time</span></div>
+                    <div><strong id="history-day-count">0</strong><span>practice days</span></div>
+                  </div>
+                  <div class="week-history-list" id="week-history-list" aria-live="polite"></div>
+                </div>
               </section>
 
               <section class="section-block log-section" id="practice-log" aria-labelledby="log-heading">
                 <div class="section-heading">
                   <div><h2 id="log-heading">Recent practice</h2><p>Your effort is worth celebrating.</p></div>
-                  <a class="text-button" href="#practice-log">View all <span>→</span></a>
+                  <a class="text-button" href="#practice-log-page">View all <span>→</span></a>
                 </div>
                 <div class="log-list" id="log-list"></div>
               </section>
@@ -110,24 +149,18 @@
 
             <aside class="secondary-column">
               <section class="feedback-card">
-                <div class="feedback-top"><span class="feedback-icon">✎</span><span class="new-label">NEW</span></div>
-                <p class="card-eyebrow">A NOTE FROM MS. MORGAN</p>
+                <div class="feedback-top"><span class="feedback-icon">✎</span><span class="new-label">NO NOTES</span></div>
+                <p class="card-eyebrow">TEACHER FEEDBACK</p>
                 <h3>A little focus for this week</h3>
-                <p class="feedback-message">Lovely work on your bow hold last lesson, Sam! This week, try 5 minutes of open strings before your pieces. Keep your bow straight and listen for an even sound.</p>
-                <div class="feedback-author"><div class="teacher-avatar small">M</div><span><strong>Ms. Morgan</strong><small>Monday · 3:15 pm</small></span><span class="feedback-heart">♡</span></div>
+                <p class="feedback-message">No teacher feedback has been recorded yet. When your teacher shares a note, it will appear here.</p>
               </section>
 
-              <section class="class-card" id="classmates">
+              <section class="class-card" id="classmates-preview">
                 <div class="section-heading compact">
-                  <div><h2>Garden friends</h2><p>Growing together this week</p></div>
+                  <div><h2>Garden friends</h2><p>Fictional classmates · demo data</p></div>
                   <button class="more-button" type="button" aria-label="More garden friends options">···</button>
                 </div>
-                <div class="friend-list" id="friend-list">
-                  <div class="friend-row"><span class="friend-rank">1</span><div class="friend-avatar avatar-peach">L</div><div class="friend-info"><strong>Lily Chen <span class="you-label">FRIEND</span></strong><small>Flute · 85 min</small></div><div class="friend-flower">🌼</div></div>
-                  <div class="friend-row"><span class="friend-rank">2</span><div class="friend-avatar avatar-blue">A</div><div class="friend-info"><strong>Alex Rivera</strong><small>Piano · 70 min</small></div><div class="friend-flower">🌷</div></div>
-                  <div class="friend-row is-you"><span class="friend-rank">3</span><div class="friend-avatar avatar-green">S</div><div class="friend-info"><strong>Sam Taylor <span class="you-label">YOU</span></strong><small>Violin · <span id="leaderboard-minutes">0</span> min</small></div><div class="friend-flower">🌱</div></div>
-                  <div class="friend-row"><span class="friend-rank">4</span><div class="friend-avatar avatar-lilac">N</div><div class="friend-info"><strong>Noah Park</strong><small>Cello · 35 min</small></div><div class="friend-flower">🌿</div></div>
-                </div>
+                <div class="friend-list" id="friend-list"></div>
                 <div class="class-footer"><span>✧</span> Kindness grows here. Cheer each other on!</div>
               </section>
 
@@ -139,6 +172,55 @@
             </aside>
           </div>
           <footer class="page-footer">Made with care for every little practice session <span>✿</span></footer>
+          </section>
+
+          <section class="app-view" id="garden-page" data-page-view="garden" hidden>
+            <section class="section-block page-intro">
+              <p class="eyebrow">YOUR PERSONAL GARDEN <span class="eyebrow-dot">✳</span></p>
+              <h1>My garden <span class="wave">✦</span></h1>
+              <p class="welcome-subtitle">Every flower reflects your own musical journey. Choose a growing flower to feature on your dashboard.</p>
+            </section>
+            <section class="garden-card full-garden-card" aria-labelledby="full-garden-heading">
+              <div class="garden-card-top"><div><p class="card-eyebrow">YOUR GROWING COLLECTION</p><h3 id="full-garden-heading">A garden shaped by practice</h3></div><span class="collection-count" id="full-collection-count">0 flowers</span></div>
+              <div class="full-garden" id="full-garden" aria-live="polite"></div>
+            </section>
+          </section>
+
+          <section class="app-view" id="practice-log-page" data-page-view="practice-log" hidden>
+            <section class="section-block page-intro">
+              <p class="eyebrow">YOUR MUSICAL JOURNEY <span class="eyebrow-dot">✳</span></p>
+              <h1>Practice log <span class="wave">✦</span></h1>
+              <p class="welcome-subtitle">Every session, small win, and new note in your story.</p>
+            </section>
+            <section class="section-block">
+              <div class="section-heading">
+                <div><h2>All practice sessions</h2><p>Choose a week or browse your complete history.</p></div>
+                <label class="log-filter-label" for="log-week-filter">Show
+                  <select id="log-week-filter" aria-label="Filter practice log by week"></select>
+                </label>
+              </div>
+              <div class="complete-log-list" id="complete-log-list" aria-live="polite"></div>
+            </section>
+          </section>
+
+          <section class="app-view" id="classmates-page" data-page-view="classmates" hidden>
+            <section class="section-block page-intro">
+              <p class="eyebrow">GROWING TOGETHER <span class="eyebrow-dot">✳</span></p>
+              <h1>Classmates <span class="wave">✦</span></h1>
+              <p class="welcome-subtitle">A friendly demo garden using fictional classmates and sample progress.</p>
+            </section>
+            <div class="classmates-layout">
+              <section class="class-card classmates-roster">
+                <div class="section-heading compact"><div><h2>Garden friends</h2><p>Choose a classmate to visit their garden</p></div></div>
+                <div class="friend-list" id="classmates-roster"></div>
+              </section>
+              <section class="garden-card classmate-garden-card" aria-labelledby="classmate-garden-heading">
+                <div class="garden-card-top"><div><p class="card-eyebrow">SAMPLE GARDEN</p><h3 id="classmate-garden-heading">Choose a garden friend</h3></div><span class="collection-count" id="classmate-achievement">Demo</span></div>
+                <p class="garden-intro" id="classmate-progress"></p>
+                <div class="classmate-garden" id="classmate-garden"></div>
+              </section>
+            </div>
+          </section>
         </div>
       </main>
     </div>
@@ -161,7 +243,17 @@
         <label for="practice-date">Practice date</label>
         <input id="practice-date" name="date" type="date" required />
         <label for="practice-minutes">How long did you practice?</label>
-        <div class="minutes-input"><input id="practice-minutes" name="minutes" type="number" min="1" max="300" value="20" required /><span>minutes</span></div>
+        <div class="minutes-input"><input id="practice-minutes" name="minutes" type="number" min="1" max="240" value="20" required /><span>minutes</span></div>
+        <label for="practice-instrument">Which instrument did you practise?</label>
+        <select id="practice-instrument" name="instrument" required>
+          <option value="Violin">Violin</option>
+          <option value="Clarinet">Clarinet</option>
+          <option value="Piano">Piano</option>
+          <option value="Cello">Cello</option>
+          <option value="Flute">Flute</option>
+          <option value="Ensemble">Ensemble</option>
+          <option value="Other">Other</option>
+        </select>
         <label for="practice-focus">What did you focus on?</label>
         <select id="practice-focus" name="focus" required>
           <option value="Scales & warm-up">Scales &amp; warm-up</option>
