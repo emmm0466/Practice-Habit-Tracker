@@ -948,6 +948,12 @@ function showPage() {
   document.querySelectorAll(".nav-link").forEach((link) => {
     link.classList.toggle("active", link.dataset.page === page);
   });
+  const inYourSpace = page !== "dashboard";
+  document.querySelectorAll(".space-nav-group").forEach((group) => {
+    const summary = group.querySelector("summary");
+    summary.classList.toggle("active", inYourSpace);
+    if (inYourSpace) group.open = true;
+  });
   if (page === "garden") renderGardenPage();
   if (page === "practice-log") renderCompleteLog();
   if (page === "classmates") renderClassmates();

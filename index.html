@@ -17,12 +17,16 @@
           <span class="brand-mark" aria-hidden="true">✿</span>
           <span>petal<span class="brand-light">practice</span></span>
         </a>
-        <div class="sidebar-label">YOUR SPACE</div>
         <nav class="main-nav" aria-label="Main navigation">
           <a class="nav-link active" href="#dashboard" data-page="dashboard"><span>⌂</span> Dashboard</a>
-          <a class="nav-link" href="#garden-page" data-page="garden"><span>❋</span> My garden</a>
-          <a class="nav-link" href="#practice-log-page" data-page="practice-log"><span>◷</span> Practice log</a>
-          <a class="nav-link" href="#classmates-page" data-page="classmates"><span>♧</span> Classmates</a>
+          <details class="space-nav-group" open>
+            <summary><span class="space-nav-icon">✿</span>Your Space</summary>
+            <div class="space-nav-links">
+              <a class="nav-link" href="#garden-page" data-page="garden"><span>❋</span> My garden</a>
+              <a class="nav-link" href="#practice-log-page" data-page="practice-log"><span>◷</span> Practice log</a>
+              <a class="nav-link" href="#classmates-page" data-page="classmates"><span>♧</span> Classmates</a>
+            </div>
+          </details>
         </nav>
         <div class="sidebar-bottom">
           <div class="teacher-mini">
@@ -51,9 +55,14 @@
         <div class="page-wrap">
           <nav class="mobile-nav" aria-label="Mobile navigation">
             <a class="nav-link active" href="#dashboard" data-page="dashboard"><span>⌂</span> Dashboard</a>
-            <a class="nav-link" href="#garden-page" data-page="garden"><span>❋</span> Garden</a>
-            <a class="nav-link" href="#practice-log-page" data-page="practice-log"><span>◷</span> Practice log</a>
-            <a class="nav-link" href="#classmates-page" data-page="classmates"><span>♧</span> Classmates</a>
+            <details class="space-nav-group" open>
+              <summary><span class="space-nav-icon">✿</span>Your Space</summary>
+              <div class="space-nav-links">
+                <a class="nav-link" href="#garden-page" data-page="garden"><span>❋</span> My Garden</a>
+                <a class="nav-link" href="#practice-log-page" data-page="practice-log"><span>◷</span> Practice Log</a>
+                <a class="nav-link" href="#classmates-page" data-page="classmates"><span>♧</span> Classmates</a>
+              </div>
+            </details>
           </nav>
           <section class="app-view" id="dashboard-view" data-page-view="dashboard">
           <section class="welcome-row">
