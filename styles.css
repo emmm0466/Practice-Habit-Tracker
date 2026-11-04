@@ -98,8 +98,8 @@ h1 { font-family: "Nunito", sans-serif; font-weight: 800; font-size: 32px; lette
 .garden-hill { position: absolute; bottom: -62px; border-radius: 50% 50% 0 0; }
 .hill-back { width: 260px; height: 125px; right: -54px; background: #b7cba9; transform: rotate(-7deg); }
 .hill-front { width: 270px; height: 110px; left: 5px; bottom: -69px; background: #8eae84; transform: rotate(8deg); }
-.flower-level { position: absolute; bottom: 14px; right: 17px; display: flex; align-items: center; gap: 6px; border: 1px solid #ffffffb3; background: #ffffffbc; padding: 7px 10px; border-radius: 8px; color: #58805c; }
-.flower-level strong { font-size: 9px; }.flower-level small { color: #9aa493; font-size: 8px; margin-left: 2px; }
+.flower-level { position: absolute; bottom: 14px; right: 17px; display: grid; gap: 3px; max-width: calc(100% - 24px); border: 1px solid #ffffffb3; background: #ffffffbc; padding: 7px 10px; border-radius: 8px; color: #58805c; }
+.flower-level-heading { display: flex; align-items: center; gap: 6px; }.flower-level strong { font-size: 9px; }.flower-level small { color: #9aa493; font-size: 8px; }.flower-growth-detail { max-width: 100%; line-height: 1.35; }
 .sparkle { position: absolute; color: #e2b95e; }.sparkle-a { top: 76px; left: 26%; font-size: 14px; }.sparkle-b { top: 123px; right: 21%; font-size: 18px; }.sparkle-c { top: 35px; left: 56%; font-size: 27px; color: white; }
 .content-grid { display: grid; grid-template-columns: minmax(0, 1.55fr) minmax(260px, .9fr); gap: 21px; margin-top: 24px; }
 .primary-column, .secondary-column { min-width: 0; }
@@ -184,17 +184,20 @@ h1 { font-family: "Nunito", sans-serif; font-weight: 800; font-size: 32px; lette
 .plant-petals { opacity: 0; transform-box: fill-box; transform-origin: center; transform: scale(.12); transition: opacity .7s ease, transform 1s cubic-bezier(.2,.8,.2,1); }
 .plant-face { opacity: 0; transition: opacity .6s ease; }
 .growth-sprout .plant-leaf.left:first-of-type,
-.growth-stalk .plant-leaf,
-.growth-bud .plant-leaf,
-.growth-developing .plant-leaf,
+.growth-young-plant .plant-leaf.left:first-of-type,
+.growth-young-plant .plant-leaf.right,
+.growth-growing .plant-leaf,
+.growth-budding .plant-leaf,
+.growth-almost-blooming .plant-leaf,
 .growth-bloom .plant-leaf { opacity: 1; transform: scale(1) rotate(0); }
 .growth-sprout .plant-leaf.left:first-of-type { transform: scale(.65) rotate(-15deg); }
-.growth-bud .plant-bud,
-.growth-developing .plant-bud,
+.growth-young-plant .plant-leaf { transform: scale(.8) rotate(0); }
+.growth-budding .plant-bud,
+.growth-almost-blooming .plant-bud,
 .growth-bloom .plant-bud { opacity: 1; transform: scale(1); }
-.growth-developing .plant-petals { opacity: .8; transform: scale(.68); }
+.growth-almost-blooming .plant-petals { opacity: .8; transform: scale(.68); }
 .growth-bloom .plant-petals { opacity: 1; transform: scale(1); }
-.growth-developing .plant-center,
+.growth-almost-blooming .plant-center,
 .growth-bloom .plant-center { opacity: 1; transform: scale(1); }
 .growth-bloom .plant-face { opacity: 1; }
 .plant-health-wilting .plant-leaf.left { transform: rotate(28deg) scale(.9); }

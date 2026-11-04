@@ -1,16 +1,26 @@
 const STORAGE_KEY = "petal-practice-v1";
 const FLOWERS = [
-  { name: "Sunflower", cost: 0 },
-  { name: "Tulip", cost: 30, petalColor: "#e88087" },
-  { name: "Daisy", cost: 50, petalColor: "#fffaf0" },
-  { name: "Lavender", cost: 75, petalColor: "#9c83c5" },
+  { name: "Sunflower", cost: 0, fullBloomMinutes: 1000 },
+  { name: "Tulip", cost: 30, petalColor: "#e88087", fullBloomMinutes: 1000 },
+  { name: "Daisy", cost: 50, petalColor: "#fffaf0", fullBloomMinutes: 1000 },
+  { name: "Lavender", cost: 75, petalColor: "#9c83c5", fullBloomMinutes: 1000 },
 ];
 const DEMO_PROFILE = Object.freeze({
   student: Object.freeze({ firstName: "Emily" }),
   teacher: Object.freeze({ displayName: "Miss Costa" }),
 });
-const GROWTH_STAGES = ["Seed", "Sprout", "Growing stalk", "Bud", "Developing flower", "Full bloom"];
-const GROWTH_GOAL_MINUTES = 300;
+const DEFAULT_GROWTH_MILESTONES = Object.freeze([
+  { name: "Seed", cssClass: "seed", minutes: 0 },
+  { name: "Sprout", cssClass: "sprout", minutes: 120 },
+  { name: "Young plant", cssClass: "young-plant", minutes: 270 },
+  { name: "Growing", cssClass: "growing", minutes: 500 },
+  { name: "Budding", cssClass: "budding", minutes: 700 },
+  { name: "Almost blooming", cssClass: "almost-blooming", minutes: 880 },
+  { name: "Full bloom", cssClass: "bloom", minutes: 1000 },
+]);
+const DEFAULT_FULL_BLOOM_MINUTES = 1000;
+const LEGACY_FULL_BLOOM_MINUTES = 300;
+const GROWTH_STAGES = DEFAULT_GROWTH_MILESTONES.map((milestone) => milestone.name);
 const MAX_WEEKLY_TOKENS = 8;
 const dialog = document.querySelector("#practice-dialog");
 const goalDialog = document.querySelector("#goal-dialog");
@@ -42,12 +52,40 @@ function calendarDaysBetween(start, end) {
 function newId() {
   return globalThis.crypto?.randomUUID?.() || `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 }
+function growthMilestonesFor(flowerName, fullBloomMinutes) {
+  const flower = FLOWERS.find((item) => item.name === flowerName);
+  const configuredMilestones = Array.isArray(flower?.growthMilestones)
+    && flower.growthMilestones.length === DEFAULT_GROWTH_MILESTONES.length
+    && flower.growthMilestones.every((milestone, index, list) =>
+      milestone && typeof milestone.name === "string"
+      && typeof milestone.cssClass === "string"
+      && Number.isInteger(milestone.minutes)
+      && milestone.minutes >= 0
+      && (index === 0 ? milestone.minutes === 0 : milestone.minutes > list[index - 1].minutes))
+    ? flower.growthMilestones
+    : DEFAULT_GROWTH_MILESTONES;
+  const configuredGoal = Number.isInteger(flower?.fullBloomMinutes) && flower.fullBloomMinutes >= 7
+    ? flower.fullBloomMinutes
+    : configuredMilestones[configuredMilestones.length - 1]?.minutes || DEFAULT_FULL_BLOOM_MINUTES;
+  const target = Number.isInteger(fullBloomMinutes) && fullBloomMinutes > 0
+    ? fullBloomMinutes
+    : configuredGoal;
+  const sourceGoal = configuredMilestones[configuredMilestones.length - 1].minutes;
+  if (target === sourceGoal) return configuredMilestones.map((milestone) => ({ ...milestone }));
+  return configuredMilestones.map((milestone, index) => ({
+    ...milestone,
+    minutes: index === configuredMilestones.length - 1
+      ? target
+      : Math.round((milestone.minutes / sourceGoal) * target),
+  }));
+}
 function createPlant(flower, minutes) {
+  const milestones = growthMilestonesFor(flower);
   return {
     id: newId(),
     flower,
     growthMinutes: minutes,
-    growthGoalMinutes: GROWTH_GOAL_MINUTES,
+    growthGoalMinutes: milestones[milestones.length - 1].minutes,
     growthFloor: 0,
   };
 }
@@ -92,14 +130,35 @@ function recoverTokenBalance(saved, sessions, unlocked) {
   return Math.max(0, earned - spent);
 }
 function growthFor(plant) {
-  const progress = Math.min(1, Math.max(
-    Number.isFinite(plant.growthFloor) ? plant.growthFloor : 0,
-    plant.growthMinutes / plant.growthGoalMinutes
-  ));
+  const milestones = growthMilestonesFor(plant.flower, plant.growthGoalMinutes);
+  const fullBloomMinutes = milestones[milestones.length - 1].minutes;
+  const minutes = Math.max(
+    Number.isFinite(plant.growthMinutes) ? plant.growthMinutes : 0,
+    (Number.isFinite(plant.growthFloor) ? plant.growthFloor : 0) * fullBloomMinutes
+  );
+  const progress = Math.min(1, minutes / fullBloomMinutes);
+  let stage = 0;
+  for (let index = 1; index < milestones.length; index += 1) {
+    if (minutes < milestones[index].minutes) break;
+    stage = index;
+  }
+  const nextMilestone = milestones[stage + 1] || null;
+  const previousMilestone = milestones[stage];
   return {
     progress,
     percent: Math.round(progress * 100),
-    stage: Math.min(GROWTH_STAGES.length - 1, Math.floor(progress * (GROWTH_STAGES.length - 1))),
+    stage,
+    stageName: milestones[stage].name,
+    stageClass: milestones[stage].cssClass,
+    minutes,
+    fullBloomMinutes,
+    nextMilestone,
+    minutesToNextMilestone: nextMilestone ? Math.max(0, nextMilestone.minutes - minutes) : 0,
+    minutesIntoNextMilestone: nextMilestone ? Math.max(0, minutes - previousMilestone.minutes) : 0,
+    minutesBetweenMilestones: nextMilestone ? nextMilestone.minutes - previousMilestone.minutes : 0,
+    nextMilestoneProgress: nextMilestone
+      ? Math.min(1, (minutes - previousMilestone.minutes) / (nextMilestone.minutes - previousMilestone.minutes))
+      : 1,
   };
 }
 function loadState() {
@@ -156,11 +215,17 @@ function loadState() {
         flower: plant.flower,
         growthMinutes: Number.isFinite(plant.growthMinutes) ? Math.max(0, plant.growthMinutes) : 0,
         growthGoalMinutes: Number.isFinite(plant.growthGoalMinutes)
-          ? Math.max(60, plant.growthGoalMinutes)
-          : GROWTH_GOAL_MINUTES,
+          ? Math.max(7, plant.growthGoalMinutes)
+          : growthMilestonesFor(plant.flower)[DEFAULT_GROWTH_MILESTONES.length - 1].minutes,
         growthFloor: Number.isFinite(plant.growthFloor)
           ? Math.min(1, Math.max(0, plant.growthFloor))
           : 0,
+      }))
+      .map((plant) => ({
+        ...plant,
+        growthGoalMinutes: plant.growthGoalMinutes === LEGACY_FULL_BLOOM_MINUTES
+          ? growthMilestonesFor(plant.flower)[DEFAULT_GROWTH_MILESTONES.length - 1].minutes
+          : plant.growthGoalMinutes,
       }));
   } else {
     const previousPracticeMinutes = sessions.reduce((total, session) => total + session.minutes, 0);
@@ -462,12 +527,11 @@ function plantPetals(flower) {
 function plantSvg(plant, health, id) {
   const flower = FLOWERS.find((item) => item.name === plant.flower) || FLOWERS[0];
   const growth = growthFor(plant);
-  const stageClass = ["seed", "sprout", "stalk", "bud", "developing", "bloom"][growth.stage];
   const face = flower.name === "Sunflower" || flower.name === "Daisy"
     ? '<g class="plant-face" fill="#573e32"><circle cx="75" cy="53" r="1.7"/><circle cx="85" cy="53" r="1.7"/><path d="M76 59Q80 63 84 59" fill="none" stroke="#573e32" stroke-width="1.5" stroke-linecap="round"/></g>'
     : "";
   return `<svg class="plant-svg species-${flower.name.toLowerCase()}" viewBox="0 0 160 205" role="img" aria-labelledby="${id}-title">
-    <title id="${id}-title">${flower.name}, ${GROWTH_STAGES[growth.stage].toLowerCase()}, ${health.label.toLowerCase()}</title>
+    <title id="${id}-title">${flower.name}, ${growth.stageName.toLowerCase()}, ${health.label.toLowerCase()}</title>
     <g class="plant-stalk">
       <path class="plant-stem" d="M80 158C76 135 84 111 80 70"/>
       <g class="plant-leaf left"><path fill="#79a96e" d="M80 132C57 132 43 118 42 100C61 100 76 111 80 132Z"/></g>
@@ -493,6 +557,7 @@ function renderFlower() {
     target.innerHTML = "";
     document.querySelector("#hero-plant-name").textContent = "Garden in bloom";
     document.querySelector("#flower-stage").textContent = "All flowers grown";
+    document.querySelector("#flower-growth-detail").textContent = "Every flower has reached full bloom.";
     document.querySelector("#flower-progress").setAttribute("aria-valuenow", "100");
     document.querySelector("#flower-progress-fill").style.width = "100%";
     document.querySelector("#streak-count").textContent = `${getStreak()} ${getStreak() === 1 ? "day" : "days"}`;
@@ -501,7 +566,7 @@ function renderFlower() {
   }
   const growth = growthFor(plant);
   const flower = FLOWERS.find((item) => item.name === plant.flower) || FLOWERS[0];
-  target.className = `hero-plant-wrap growth-${["seed", "sprout", "stalk", "bud", "developing", "bloom"][growth.stage]} plant-health-${health.status}`;
+  target.className = `hero-plant-wrap growth-${growth.stageClass} plant-health-${health.status}`;
   const existingSvg = target.querySelector(".plant-svg");
   if (!existingSvg || existingSvg.dataset.plantId !== plant.id) {
     target.innerHTML = plantSvg(plant, health, "hero-plant");
@@ -510,9 +575,12 @@ function renderFlower() {
   svg.dataset.plantId = plant.id;
   updatePlantSvg(svg, plant, health);
   document.querySelector("#hero-plant-name").textContent = flower.name;
-  document.querySelector("#flower-stage").textContent = `${GROWTH_STAGES[growth.stage]} · ${growth.percent}% · ${health.label}`;
+  document.querySelector("#flower-stage").textContent = `${growth.stageName} · ${growth.minutes} min · ${health.label}`;
+  document.querySelector("#flower-growth-detail").textContent = growth.nextMilestone
+    ? `Next: ${growth.nextMilestone.name} · ${growth.minutesIntoNextMilestone}/${growth.minutesBetweenMilestones} min · Bloom: ${growth.minutes}/${growth.fullBloomMinutes} min (${growth.percent}%)`
+    : `Full bloom · ${growth.minutes}/${growth.fullBloomMinutes} min (${growth.percent}%)`;
   document.querySelector("#flower-progress").setAttribute("aria-valuenow", growth.percent);
-  document.querySelector("#flower-progress").setAttribute("aria-valuetext", `${growth.percent}% grown`);
+  document.querySelector("#flower-progress").setAttribute("aria-valuetext", `${growth.minutes} of ${growth.fullBloomMinutes} cumulative minutes; ${growth.percent}% to full bloom`);
   document.querySelector("#flower-progress-fill").style.width = `${growth.percent}%`;
   document.querySelector("#streak-count").textContent = `${getStreak()} ${getStreak() === 1 ? "day" : "days"}`;
   document.querySelector("#token-count").textContent = tokenLabel(state.seedTokens);
@@ -592,16 +660,15 @@ function renderGardenPage() {
   }
   container.innerHTML = state.garden.map((plant) => {
     const growth = growthFor(plant);
-    const stage = GROWTH_STAGES[growth.stage];
-    const stageClass = ["seed", "sprout", "stalk", "bud", "developing", "bloom"][growth.stage];
+    const stage = growth.stageName;
     const isActive = plant.id === active?.id;
     const featureControl = growth.stage < GROWTH_STAGES.length - 1
       ? `<button class="garden-feature-button" type="button" data-feature-plant="${escapeHtml(plant.id)}">${isActive ? "Currently growing" : "Grow this flower"}</button>`
       : '<span class="garden-bloom-label">A lasting bloom</span>';
-    return `<article class="garden-plant garden-page-plant growth-${stageClass} plant-health-${health.status}${isActive ? " is-active" : ""}" data-plant-id="${escapeHtml(plant.id)}" aria-label="${escapeHtml(plant.flower)}, ${stage}, ${health.label}">
+    return `<article class="garden-plant garden-page-plant growth-${growth.stageClass} plant-health-${health.status}${isActive ? " is-active" : ""}" data-plant-id="${escapeHtml(plant.id)}" aria-label="${escapeHtml(plant.flower)}, ${stage}, ${health.label}">
       ${plantSvg(plant, health, `garden-page-${plant.id}`)}
       <span class="garden-plant-name">${escapeHtml(plant.flower)}</span>
-      <span class="garden-plant-status">${stage} · ${growth.percent}%<br>${health.label}</span>
+      <span class="garden-plant-status">${stage} · ${growth.minutes}/${growth.fullBloomMinutes} min<br>${growth.nextMilestone ? `Next: ${growth.nextMilestone.name} ${growth.minutesIntoNextMilestone}/${growth.minutesBetweenMilestones} min` : "Full bloom achieved"} · ${health.label}</span>
       <span class="garden-plant-progress" role="progressbar" aria-label="${escapeHtml(plant.flower)} growth" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${growth.percent}"><span style="width:${growth.percent}%"></span></span>
       ${featureControl}
     </article>`;
@@ -629,12 +696,11 @@ function renderClassmates() {
   document.querySelector("#classmate-garden").innerHTML = selected.plants.map((plant, index) => {
     const growth = growthFor(plant);
     const health = { status: "healthy", label: "Healthy" };
-    const stage = GROWTH_STAGES[growth.stage];
-    const stageClass = ["seed", "sprout", "stalk", "bud", "developing", "bloom"][growth.stage];
-    return `<article class="garden-plant garden-page-plant growth-${stageClass} plant-health-healthy">
+    const stage = growth.stageName;
+    return `<article class="garden-plant garden-page-plant growth-${growth.stageClass} plant-health-healthy">
       ${plantSvg(plant, health, `sample-${selected.id}-${index}`)}
       <span class="garden-plant-name">${plant.flower}</span>
-      <span class="garden-plant-status">${stage} · ${growth.percent}%<br>Healthy</span>
+      <span class="garden-plant-status">${stage} · ${growth.minutes}/${growth.fullBloomMinutes} min<br>${growth.nextMilestone ? `Next: ${growth.nextMilestone.name} ${growth.minutesIntoNextMilestone}/${growth.minutesBetweenMilestones} min` : "Full bloom achieved"} · Healthy</span>
       <span class="garden-plant-progress" role="progressbar" aria-label="${plant.flower} sample growth" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${growth.percent}"><span style="width:${growth.percent}%"></span></span>
     </article>`;
   }).join("");
@@ -653,7 +719,7 @@ function updatePlantSvg(svg, plant, health) {
   svg.classList.toggle("plant-health-wilting", health.status === "wilting");
   svg.classList.toggle("plant-health-tired", health.status === "tired");
   const title = svg.querySelector("title");
-  if (title) title.textContent = `${flower.name}, ${GROWTH_STAGES[growth.stage].toLowerCase()}, ${health.label.toLowerCase()}`;
+  if (title) title.textContent = `${flower.name}, ${growth.stageName.toLowerCase()}, ${health.label.toLowerCase()}`;
 }
 function renderCollection() {
   const health = getPlantHealth();
@@ -662,10 +728,16 @@ function renderCollection() {
   document.querySelector("#collection-count").textContent = `${state.garden.length} / ${FLOWERS.length}`;
   const active = activePlant();
   FLOWERS.forEach((flower, index) => {
+    const seedPlant = {
+      flower: flower.name,
+      growthMinutes: 0,
+      growthGoalMinutes: growthMilestonesFor(flower.name)[DEFAULT_GROWTH_MILESTONES.length - 1].minutes,
+      growthFloor: 0,
+    };
     const plant = state.garden.find((item) => item.flower === flower.name);
     if (plant) {
       const growth = growthFor(plant);
-      const stageName = GROWTH_STAGES[growth.stage];
+      const stageName = growth.stageName;
       const activeClass = plant.id === active?.id ? " is-active" : "";
       let card = garden.querySelector(`.garden-plant[data-plant-id="${plant.id}"]`);
       if (!card) {
@@ -678,10 +750,10 @@ function renderCollection() {
           <span class="garden-plant-progress" aria-hidden="true"><span></span></span>`;
         garden.querySelector(`.locked-seed[data-flower="${flower.name}"]`)?.replaceWith(card);
       }
-      card.className = `garden-plant growth-${["seed", "sprout", "stalk", "bud", "developing", "bloom"][growth.stage]} plant-health-${health.status}${activeClass}`;
+      card.className = `garden-plant growth-${growth.stageClass} plant-health-${health.status}${activeClass}`;
       card.setAttribute("aria-label", `${flower.name}, ${stageName}, ${health.label}${plant.id === active?.id ? ", currently growing" : ""}`);
       card.querySelector(".garden-plant-name").textContent = flower.name;
-      card.querySelector(".garden-plant-status").innerHTML = `${plant.id === active?.id ? "Tending now · " : ""}${stageName} · ${growth.percent}%<br>${health.label}`;
+      card.querySelector(".garden-plant-status").innerHTML = `${plant.id === active?.id ? "Tending now · " : ""}${stageName} · ${growth.minutes}/${growth.fullBloomMinutes} min<br>${growth.nextMilestone ? `Next: ${growth.nextMilestone.name} ${growth.minutesIntoNextMilestone}/${growth.minutesBetweenMilestones} min` : "Full bloom achieved"} · ${health.label}`;
       card.querySelector(".garden-plant-progress span").style.width = `${growth.percent}%`;
       updatePlantSvg(card.querySelector(".plant-svg"), plant, health);
       const currentAtIndex = garden.children[index];
@@ -694,13 +766,13 @@ function renderCollection() {
       button.type = "button";
       button.dataset.flower = flower.name;
       button.className = "garden-plant locked-seed growth-seed";
-      button.innerHTML = `${plantSvg({ flower: flower.name, growthMinutes: 0, growthGoalMinutes: state.weeklyTargetMinutes * 5 }, health, `locked-${flower.name.toLowerCase()}`)}
+      button.innerHTML = `${plantSvg(seedPlant, health, `locked-${flower.name.toLowerCase()}`)}
         <span class="garden-plant-name"></span><span class="seed-cost"></span>`;
     }
     button.setAttribute("aria-label", `Unlock ${flower.name} seed for ${flower.cost} seed tokens`);
     button.querySelector(".garden-plant-name").textContent = `${flower.name} seed`;
     button.querySelector(".seed-cost").textContent = `${flower.cost} seed tokens`;
-    updatePlantSvg(button.querySelector(".plant-svg"), { flower: flower.name, growthMinutes: 0, growthGoalMinutes: state.weeklyTargetMinutes * 5 }, health);
+    updatePlantSvg(button.querySelector(".plant-svg"), seedPlant, health);
     const currentAtIndex = garden.children[index];
     if (currentAtIndex !== button) garden.insertBefore(button, currentAtIndex || null);
   });
