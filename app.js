@@ -1104,3 +1104,131 @@ function showPage() {
 window.addEventListener("hashchange", showPage);
 render();
 showPage();
+
+
+// ===================================
+// PETAL PRACTICE - USER AUTHENTICATION
+// ===================================
+
+const authScreen = document.querySelector("#auth-screen");
+const appShell = document.querySelector(".app-shell");
+const loginForm = document.querySelector("#login-form");
+const signupForm = document.querySelector("#signup-form");
+const loginSwitch = document.querySelector(".auth-switch");
+const signupSwitch = document.querySelector("#back-to-login");
+
+// Show login or dashboard depending on authentication
+function updateAuthScreen(user) {
+  authScreen.hidden = Boolean(user);
+  appShell.hidden = !user;
+
+  if (user) {
+    const name = user.user_metadata?.display_name
+      || user.email?.split("@")[0]
+      || "Musician";
+
+    document.querySelector("#dashboard-greeting").textContent =
+      `Welcome back, ${name}`;
+
+    document.querySelector("#student-display-name").textContent = name;
+    document.querySelector("#student-avatar").textContent = name[0].toUpperCase();
+  } else {
+    loginForm.reset();
+    signupForm.reset();
+  }
+}
+
+// Switch to registration
+document.querySelector("#show-signup").addEventListener("click", () => {
+  loginForm.hidden = true;
+  loginSwitch.hidden = true;
+  signupForm.hidden = false;
+  signupSwitch.hidden = false;
+  document.querySelector("#auth-heading").textContent = "Create your account";
+  document.querySelector(".auth-description").textContent =
+    "Start growing your musical journey, one practice session at a time.";
+});
+
+// Switch back to login
+document.querySelector("#show-login").addEventListener("click", () => {
+  loginForm.hidden = false;
+  loginSwitch.hidden = false;
+  signupForm.hidden = true;
+  signupSwitch.hidden = true;
+  document.querySelector("#auth-heading").textContent = "Welcome back!";
+  document.querySelector(".auth-description").textContent =
+    "Log in to tend your garden and keep growing as a musician.";
+});
+
+// Log in
+loginForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+
+  const email = document.querySelector("#login-email").value.trim();
+  const password = document.querySelector("#login-password").value;
+  const errorMessage = document.querySelector("#auth-error");
+
+  errorMessage.textContent = "Logging in...";
+
+  const { data, error } = await window.supabaseClient.auth.signInWithPassword({
+    email,
+    password,
+  });
+
+  if (error) {
+    errorMessage.textContent = error.message;
+    return;
+  }
+
+  errorMessage.textContent = "";
+  updateAuthScreen(data.user);
+});
+
+// Create account
+signupForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+
+  const name = document.querySelector("#signup-name").value.trim();
+  const email = document.querySelector("#signup-email").value.trim();
+  const password = document.querySelector("#signup-password").value;
+  const errorMessage = document.querySelector("#signup-error");
+
+  errorMessage.textContent = "Creating your account...";
+
+  const { data, error } = await window.supabaseClient.auth.signUp({
+    email,
+    password,
+    options: {
+      data: {
+        display_name: name,
+      },
+    },
+  });
+
+  if (error) {
+    errorMessage.textContent = error.message;
+    return;
+  }
+
+  if (data.session) {
+    updateAuthScreen(data.user);
+  } else {
+    errorMessage.textContent =
+      "Account created! Please check your email and confirm your account before logging in.";
+  }
+});
+
+// Check whether someone is already logged in
+window.supabaseClient.auth.onAuthStateChange((event, session) => {
+  updateAuthScreen(session?.user || null);
+});
+
+// Restore an existing login when the page loads
+window.supabaseClient.auth.getSession().then(({ data, error }) => {
+  if (error) {
+    console.error("Could not check login status:", error);
+    return;
+  }
+
+  updateAuthScreen(data.session?.user || null);
+});
