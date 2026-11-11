@@ -11,6 +11,54 @@
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
+<div id="auth-screen" class="auth-screen">
+  <div class="auth-card">
+    <div class="auth-brand">
+      <span class="brand-mark">✿</span>
+      <span>petal<span class="brand-light">practice</span></span>
+    </div>
+
+    <p class="eyebrow">YOUR MUSICAL JOURNEY STARTS HERE</p>
+    <h1 id="auth-heading">Welcome back!</h1>
+    <p class="auth-description">Log in to tend your garden and keep growing as a musician.</p>
+
+    <form id="login-form">
+      <label for="login-email">Email address</label>
+      <input id="login-email" type="email" required placeholder="Enter your email">
+
+      <label for="login-password">Password</label>
+      <input id="login-password" type="password" required placeholder="Enter your password">
+
+      <button class="button button-primary auth-submit" type="submit">Log in →</button>
+      <p id="auth-error" class="auth-error" role="alert"></p>
+    </form>
+
+    <p class="auth-switch">
+      New to Petal Practice?
+      <button id="show-signup" type="button">Create an account</button>
+    </p>
+
+    <form id="signup-form" hidden>
+      <label for="signup-name">Your name</label>
+      <input id="signup-name" type="text" required placeholder="First name">
+
+      <label for="signup-email">Email address</label>
+      <input id="signup-email" type="email" required placeholder="Enter your email">
+
+      <label for="signup-password">Create a password</label>
+      <input id="signup-password" type="password" required minlength="6" placeholder="At least 6 characters">
+
+      <button class="button button-primary auth-submit" type="submit">Create account →</button>
+      <p id="signup-error" class="auth-error" role="alert"></p>
+    </form>
+
+    <p class="auth-switch" id="back-to-login" hidden>
+      Already have an account?
+      <button id="show-login" type="button">Log in</button>
+    </p>
+  </div>
+</div>
+
     <div class="app-shell">
       <aside class="sidebar">
         <a class="brand" href="#dashboard" aria-label="Petal Practice home">
