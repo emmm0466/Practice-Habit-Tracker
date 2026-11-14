@@ -749,9 +749,63 @@ function renderClassmates() {
   }).join("");
   document.querySelectorAll("#classmate-garden .plant-svg").forEach((svg, index) => updatePlantSvg(svg, selected.plants[index], { status: "healthy", label: "Healthy" }));
 }
+
+
+async function searchFriends() {
+  const searchInput = document.querySelector("#friend-search-input");
+  const results = document.querySelector("#friend-search-results");
+  const searchTerm = searchInput.value.trim();
+
+  if (!currentUserId) {
+    results.textContent = "Please log in to search for friends.";
+    return;
+  }
+
+  if (searchTerm.length < 2) {
+    results.textContent = "Enter at least 2 characters to search.";
+    return;
+  }
+
+  results.textContent = "Searching...";
+
+  const { data, error } = await window.supabaseClient
+    .from("profiles")
+    .select("id, display_name")
+    .eq("account_status", "active")
+    .neq("id", currentUserId)
+    .ilike("display_name", `%${searchTerm}%`)
+    .limit(10);
+
+  if (error) {
+    console.error("Friend search failed:", error);
+    results.textContent = "Something went wrong. Please try again.";
+    return;
+  }
+
+  if (!data || data.length === 0) {
+    results.textContent = "No students found. Try another name.";
+    return;
+  }
+
+  results.innerHTML = data.map(profile => `
+    <div class="friend-row">
+      <span>${escapeHtml(profile.display_name)}</span>
+    </div>
+  `).join("");
+}
+
+// Connect the Search button
+document.querySelector("#friend-search-button")
+  .addEventListener("click", searchFriends);
+
+// Safely display student names
 function escapeHtml(value) {
   return String(value).replace(/[&<>"']/g, (char) => ({
-    "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;",
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#39;",
   })[char]);
 }
 function updatePlantSvg(svg, plant, health) {
