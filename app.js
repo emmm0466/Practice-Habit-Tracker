@@ -1301,10 +1301,3 @@ window.supabaseClient.auth.getSession().then(async ({ data, error }) => {
     await loadStudentData(user);
   }
 });
-  if (error) {
-    console.error("Could not check login status:", error);
-    return;
-  }
-
-  updateAuthScreen(data.session?.user || null);
-});
