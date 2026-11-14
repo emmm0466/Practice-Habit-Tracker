@@ -1338,7 +1338,14 @@ signupForm.addEventListener("submit", async (event) => {
 
 // Check whether someone is already logged in
 window.supabaseClient.auth.onAuthStateChange((event, session) => {
-  updateAuthScreen(session?.user || null);
+  const user = session?.user || null;
+
+  if (!user) {
+    studentDataLoaded = false;
+    currentUserId = null;
+  }
+
+  updateAuthScreen(user);
 });
 
 // Restore an existing login when the page loads
