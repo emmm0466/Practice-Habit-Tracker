@@ -771,7 +771,6 @@ async function searchFriends() {
   const { data, error } = await window.supabaseClient
     .from("profiles")
     .select("id, display_name")
-    .eq("account_status", "active")
     .neq("id", currentUserId)
     .ilike("display_name", `%${searchTerm}%`)
     .limit(10);
