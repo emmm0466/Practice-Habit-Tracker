@@ -72,7 +72,7 @@
             <div class="space-nav-links">
               <a class="nav-link" href="#garden-page" data-page="garden"><span>❋</span> My garden</a>
               <a class="nav-link" href="#practice-log-page" data-page="practice-log"><span>◷</span> Practice log</a>
-              <a class="nav-link" href="#classmates-page" data-page="classmates"><span>♧</span> Classmates</a>
+              <a class="nav-link" href="#classmates-page" data-page="classmates"><span>♧</span> Find Friends</a>
             </div>
           </details>
         </nav>
@@ -108,7 +108,7 @@
               <div class="space-nav-links">
                 <a class="nav-link" href="#garden-page" data-page="garden"><span>❋</span> My Garden</a>
                 <a class="nav-link" href="#practice-log-page" data-page="practice-log"><span>◷</span> Practice Log</a>
-                <a class="nav-link" href="#classmates-page" data-page="classmates"><span>♧</span> Classmates</a>
+                <a class="nav-link" href="#classmates-page" data-page="classmates"><span>♧</span> Find Friends</a>
               </div>
             </details>
           </nav>
@@ -266,18 +266,69 @@
           <section class="app-view" id="classmates-page" data-page-view="classmates" hidden>
             <section class="section-block page-intro">
               <p class="eyebrow">GROWING TOGETHER <span class="eyebrow-dot">✳</span></p>
-              <h1>Classmates <span class="wave">✦</span></h1>
-              <p class="welcome-subtitle">A friendly demo garden using fictional classmates and sample progress.</p>
+              <h1>Find Friends <span class="wave">✦</span></h1>
+              <p class="welcome-subtitle">Connect with other musicians, send friend requests and grow together.</p>
             </section>
-            <div class="classmates-layout">
-              <section class="class-card classmates-roster">
-                <div class="section-heading compact"><div><h2>Garden friends</h2><p>Choose a classmate to visit their garden</p></div></div>
-                <div class="friend-list" id="classmates-roster"></div>
-              </section>
-              <section class="garden-card classmate-garden-card" aria-labelledby="classmate-garden-heading">
-                <div class="garden-card-top"><div><p class="card-eyebrow">SAMPLE GARDEN</p><h3 id="classmate-garden-heading">Choose a garden friend</h3></div><span class="collection-count" id="classmate-achievement">Demo</span></div>
-                <p class="garden-intro" id="classmate-progress"></p>
-                <div class="classmate-garden" id="classmate-garden"></div>
+            
+<div class="classmates-layout">
+  <section class="class-card">
+    <div class="section-heading compact">
+      <div>
+        <h2>Search for musicians</h2>
+        <p>Find other students by their display name.</p>
+      </div>
+    </div>
+
+    <div class="friend-search">
+      <input
+        id="friend-search-input"
+        type="search"
+        placeholder="Search by name..."
+        aria-label="Search for students"
+      />
+      <button class="button button-primary" id="friend-search-button" type="button">
+        Search
+      </button>
+    </div>
+
+    <div class="friend-list" id="friend-search-results">
+      <p>Search for a student to get started.</p>
+    </div>
+  </section>
+
+  <section class="class-card">
+    <div class="section-heading compact">
+      <div>
+        <h2>Friend requests</h2>
+        <p>Requests from other musicians will appear here.</p>
+      </div>
+    </div>
+    <div class="friend-list" id="incoming-friend-requests">
+      <p>No pending requests.</p>
+    </div>
+  </section>
+
+  <section class="class-card">
+    <div class="section-heading compact">
+      <div>
+        <h2>My friends</h2>
+        <p>Students you've connected with.</p>
+      </div>
+    </div>
+    <div class="friend-list" id="accepted-friends">
+      <p>Your friends will appear here.</p>
+    </div>
+  </section>
+
+  <div hidden>
+    <div id="classmates-roster"></div>
+    <h3 id="classmate-garden-heading"></h3>
+    <span id="classmate-achievement"></span>
+    <p id="classmate-progress"></p>
+    <div id="classmate-garden"></div>
+  </div>
+</div>
+
               </section>
             </div>
           </section>
