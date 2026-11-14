@@ -1180,8 +1180,13 @@ function updateAuthScreen(user) {
     signupForm.reset();
   }
 }
+
 async function loadStudentData(user) {
   if (!user) return;
+
+  // Do not sync until this student's data has finished loading.
+  studentDataLoaded = false;
+  currentUserId = null;
 
   const { data, error } = await window.supabaseClient
     .from("student_data")
@@ -1208,7 +1213,15 @@ async function loadStudentData(user) {
     }
 
     state = loadState(data.state);
-    saveState();
+
+    // Save locally only; cloud sync is still disabled here.
+    if (!saveState()) {
+      showToast("Your practice data could not be saved on this device.");
+      return;
+    }
+
+    currentUserId = user.id;
+    studentDataLoaded = true;
 
     render();
     showPage();
@@ -1216,8 +1229,8 @@ async function loadStudentData(user) {
   }
 
   // New account: transfer the existing browser data.
-  if (storageReadFailed) {
-    showToast("Your existing browser data could not be read safely.");
+  if (storageReadFailed || storageWriteFailed) {
+    showToast("Your existing browser data could not be read or saved safely.");
     return;
   }
 
@@ -1234,8 +1247,11 @@ async function loadStudentData(user) {
     return;
   }
 
+  currentUserId = user.id;
+  studentDataLoaded = true;
   showToast("Your existing practice data has been linked to your account!");
 }
+
 
 
 // Switch to registration
