@@ -161,16 +161,21 @@ function growthFor(plant) {
       : 1,
   };
 }
-function loadState() {
+function loadState(savedOverride) {
   let saved;
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return createInitialState();
-    saved = JSON.parse(raw);
-  } catch (error) {
-    storageReadFailed = true;
-    console.error("Could not read saved practice data. Existing browser data will not be overwritten.", error);
-    return createInitialState();
+
+  if (savedOverride !== undefined) {
+    saved = savedOverride;
+  } else {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) return createInitialState();
+      saved = JSON.parse(raw);
+    } catch (error) {
+      storageReadFailed = true;
+      console.error("Could not read saved practice data. Existing browser data will not be overwritten.", error);
+      return createInitialState();
+    }
   }
   if (!saved || typeof saved !== "object" || Array.isArray(saved)) {
     storageReadFailed = true;
