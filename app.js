@@ -1142,6 +1142,63 @@ function updateAuthScreen(user) {
     signupForm.reset();
   }
 }
+async function loadStudentData(user) {
+  if (!user) return;
+
+  const { data, error } = await window.supabaseClient
+    .from("student_data")
+    .select("state")
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  if (error) {
+    console.error("Could not load student data:", error);
+    showToast("Could not load your saved practice data. Please try again.");
+    return;
+  }
+
+  // Existing account: load its saved practice data.
+  if (data) {
+    if (
+      !data.state ||
+      typeof data.state !== "object" ||
+      Array.isArray(data.state)
+    ) {
+      console.error("The saved student data is invalid.");
+      showToast("Your saved data could not be loaded safely.");
+      return;
+    }
+
+    state = loadState(data.state);
+    saveState();
+
+    render();
+    showPage();
+    return;
+  }
+
+  // New account: transfer the existing browser data.
+  if (storageReadFailed) {
+    showToast("Your existing browser data could not be read safely.");
+    return;
+  }
+
+  const { error: insertError } = await window.supabaseClient
+    .from("student_data")
+    .insert({
+      user_id: user.id,
+      state: state
+    });
+
+  if (insertError) {
+    console.error("Could not save initial student data:", insertError);
+    showToast("Your practice data could not be transferred. Please try again.");
+    return;
+  }
+
+  showToast("Your existing practice data has been linked to your account!");
+}
+
 
 // Switch to registration
 document.querySelector("#show-signup").addEventListener("click", () => {
@@ -1187,6 +1244,7 @@ loginForm.addEventListener("submit", async (event) => {
 
   errorMessage.textContent = "";
   updateAuthScreen(data.user);
+  await loadStudentData(data.user);
 });
 
 // Create account
@@ -1217,6 +1275,7 @@ signupForm.addEventListener("submit", async (event) => {
 
   if (data.session) {
     updateAuthScreen(data.user);
+    await loadStudentData(data.user);
   } else {
     errorMessage.textContent =
       "Account created! Please check your email and confirm your account before logging in.";
@@ -1229,7 +1288,19 @@ window.supabaseClient.auth.onAuthStateChange((event, session) => {
 });
 
 // Restore an existing login when the page loads
-window.supabaseClient.auth.getSession().then(({ data, error }) => {
+window.supabaseClient.auth.getSession().then(async ({ data, error }) => {
+  if (error) {
+    console.error("Could not check login status:", error);
+    return;
+  }
+
+  const user = data.session?.user || null;
+  updateAuthScreen(user);
+
+  if (user) {
+    await loadStudentData(user);
+  }
+});
   if (error) {
     console.error("Could not check login status:", error);
     return;
