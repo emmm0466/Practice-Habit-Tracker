@@ -274,6 +274,11 @@ function createInitialState() {
   };
 }
 let state = loadState();
+
+let currentUserId = null;
+let studentDataLoaded = false;
+let remoteSaveQueue = Promise.resolve();
+
 let historyCalendarMonth = new Date(`${todayKey.slice(0, 7)}-01T12:00:00`);
 let historyRangeStart = null;
 let historyRangeEnd = null;
@@ -284,13 +289,46 @@ function warnStorageUnavailable() {
   storageWarningShown = true;
   showToast("Browser storage is unavailable, so changes cannot be saved. Existing saved data has not been overwritten.");
 }
+
 function saveState() {
   if (storageReadFailed || storageWriteFailed) {
     warnStorageUnavailable();
     return false;
   }
+
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+
+    // Sync changes to the logged-in student's Supabase account
+    if (studentDataLoaded && currentUserId) {
+      const userId = currentUserId;
+      const snapshot = JSON.parse(JSON.stringify(state));
+
+      remoteSaveQueue = remoteSaveQueue.then(async () => {
+        try {
+          const { error } = await window.supabaseClient
+            .from("student_data")
+            .update({
+              state: snapshot,
+              updated_at: new Date().toISOString()
+            })
+            .eq("user_id", userId);
+
+          if (error) {
+            console.error("Could not sync practice data:", error);
+            showToast(
+              "Your changes are saved on this device but could not sync to your account."
+            );
+          }
+        } catch (error) {
+          console.error("Practice data sync failed:", error);
+          showToast(
+            "Your changes are saved on this device but could not sync to your account."
+          );
+        }
+      });
+    }
+
     return true;
   } catch (error) {
     console.error("Could not save practice data.", error);
