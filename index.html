@@ -121,10 +121,17 @@
               <h1><span id="dashboard-greeting"></span> <span class="wave">✦</span></h1>
               <p class="welcome-subtitle">A little practice today goes a long way. Your garden is ready to grow.</p>
             </div>
-            <button class="button button-primary log-practice-button" id="open-practice" type="button"><span>＋</span> Log practice</button>
+            <div class="welcome-actions">
+  <button class="button button-primary log-practice-button" id="open-practice" type="button">
+    <span>＋</span> Log practice
+  </button>
+
+  <button class="button log-practice-button" id="open-practice-timer" type="button">
+    <span>◷</span> Practice timer
+  </button>
+</div>
           </section>
 
-<section class="practice-timer-card">
   <div class="timer-info">
     <span class="card-eyebrow">FOCUS TIME</span>
     <h2>Ready to practise?</h2>
@@ -513,6 +520,47 @@
         <button class="button button-primary submit-practice" type="submit">Save practice <span>→</span></button>
       </form>
     </dialog>
+
+<dialog class="practice-dialog" id="practice-timer-dialog">
+  <div class="dialog-heading">
+    <div>
+      <p class="card-eyebrow">FOCUS TIME</p>
+      <h2>Practice timer</h2>
+    </div>
+    <button class="close-button" id="close-practice-timer" type="button" aria-label="Close">×</button>
+  </div>
+
+  <p class="dialog-intro">Make a little time for music today. Every minute helps your garden grow.</p>
+
+  <label for="timer-instrument">Which instrument are you practising?</label>
+  <select id="timer-instrument">
+    <option value="Violin">Violin</option>
+    <option value="Clarinet">Clarinet</option>
+    <option value="Piano">Piano</option>
+    <option value="Cello">Cello</option>
+    <option value="Flute">Flute</option>
+    <option value="Ensemble">Ensemble</option>
+    <option value="Other">Other</option>
+  </select>
+
+  <label for="timer-focus">What will you focus on?</label>
+  <select id="timer-focus">
+    <option value="Scales & warm-up">Scales &amp; warm-up</option>
+    <option value="Technique">Technique</option>
+    <option value="Piece practice">Piece practice</option>
+    <option value="Sight-reading">Sight-reading</option>
+    <option value="Something else">Something else</option>
+  </select>
+
+  <div class="timer-display" id="practice-timer-display">00:00</div>
+
+  <div class="timer-controls">
+    <button class="button button-primary" id="timer-start" type="button">Start practice</button>
+    <button class="button" id="timer-pause" type="button" disabled>Pause</button>
+    <button class="button" id="timer-finish" type="button" disabled>Finish</button>
+  </div>
+</dialog>
+
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="supabase.js"></script>

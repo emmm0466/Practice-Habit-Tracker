@@ -1934,11 +1934,24 @@ form.addEventListener("submit", (event) => {
 
 const timerDisplay = document.querySelector("#practice-timer-display");
 const timerStartButton = document.querySelector("#timer-start");
+const timerDialog = document.querySelector("#practice-timer-dialog");
+const openTimerButton = document.querySelector("#open-practice-timer");
+const closeTimerButton = document.querySelector("#close-practice-timer");
 const timerPauseButton = document.querySelector("#timer-pause");
 const timerFinishButton = document.querySelector("#timer-finish");
 const timerInstrument = document.querySelector("#timer-instrument");
 const timerFocus = document.querySelector("#timer-focus");
 
+// Open the practice timer popup
+openTimerButton.addEventListener("click", () => {
+  renderPracticeTimer();
+  timerDialog.showModal();
+});
+
+// Close the practice timer popup
+closeTimerButton.addEventListener("click", () => {
+  timerDialog.close();
+});
 function getTimerElapsedMs(timer) {
   if (!timer) return 0;
 
