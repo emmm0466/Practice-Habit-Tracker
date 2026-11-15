@@ -750,7 +750,6 @@ function renderClassmates() {
   document.querySelectorAll("#classmate-garden .plant-svg").forEach((svg, index) => updatePlantSvg(svg, selected.plants[index], { status: "healthy", label: "Healthy" }));
 }
 
-
 async function searchFriends() {
   const searchInput = document.querySelector("#friend-search-input");
   const results = document.querySelector("#friend-search-results");
@@ -768,42 +767,92 @@ async function searchFriends() {
 
   results.textContent = "Searching...";
 
-  const { data, error } = await window.supabaseClient
+  const { data: profiles, error: profileError } = await window.supabaseClient
     .from("profiles")
     .select("id, display_name")
     .neq("id", currentUserId)
     .ilike("display_name", `%${searchTerm}%`)
     .limit(10);
 
-  if (error) {
-    console.error("Friend search failed:", error);
+  if (profileError) {
+    console.error("Friend search failed:", profileError);
     results.textContent = "Something went wrong. Please try again.";
     return;
   }
 
-  if (!data || data.length === 0) {
+  if (!profiles || profiles.length === 0) {
     results.textContent = "No students found. Try another name.";
     return;
   }
 
-  results.innerHTML = data.map(profile => `
-  <div class="friend-row">
-    <span>${escapeHtml(profile.display_name)}</span>
-    <button
-      type="button"
-      class="button button-primary add-friend-button"
-      data-profile-id="${escapeHtml(profile.id)}"
-    >
-      Add Friend
-    </button>
-  </div>
-`).join("");
+  const { data: requests, error: requestError } = await window.supabaseClient
+    .from("friend_requests")
+    .select("id, requester_id, recipient_id, status")
+    .or(`requester_id.eq.${currentUserId},recipient_id.eq.${currentUserId}`);
 
-results.querySelectorAll(".add-friend-button").forEach(button => {
-  button.addEventListener("click", () => {
-    sendFriendRequest(button.dataset.profileId);
+  if (requestError) {
+    console.error("Could not check friend requests:", requestError);
+    results.textContent = "Could not load friend request information.";
+    return;
+  }
+
+  results.innerHTML = profiles.map(profile => {
+    const existingRequest = requests.find(request =>
+      (request.requester_id === currentUserId &&
+       request.recipient_id === profile.id) ||
+      (request.requester_id === profile.id &&
+       request.recipient_id === currentUserId)
+    );
+
+    let buttonText = "Add Friend";
+    let buttonClass = "add-friend-button";
+    let disabled = "";
+
+    if (existingRequest) {
+      if (existingRequest.status === "accepted") {
+        buttonText = "Friends";
+        disabled = "disabled";
+      } else if (existingRequest.status === "pending") {
+        if (existingRequest.recipient_id === currentUserId) {
+          buttonText = "Accept Request";
+          buttonClass = "accept-friend-button";
+        } else {
+          buttonText = "Request Sent";
+          disabled = "disabled";
+        }
+      } else {
+        buttonText = "Request Declined";
+        disabled = "disabled";
+      }
+    }
+
+    return `
+      <div class="friend-row">
+        <span>${escapeHtml(profile.display_name)}</span>
+        <button
+          type="button"
+          class="button button-primary ${buttonClass}"
+          data-profile-id="${escapeHtml(profile.id)}"
+          data-request-id="${existingRequest ? escapeHtml(existingRequest.id) : ""}"
+          ${disabled}
+        >
+          ${buttonText}
+        </button>
+      </div>
+    `;
+  }).join("");
+
+  results.querySelectorAll(".add-friend-button").forEach(button => {
+    button.addEventListener("click", () => {
+      sendFriendRequest(button.dataset.profileId);
+    });
   });
-});
+
+  results.querySelectorAll(".accept-friend-button").forEach(button => {
+    button.addEventListener("click", () => {
+      acceptFriendRequest(button.dataset.requestId);
+    });
+  });
 }
 async function sendFriendRequest(profileId) {
   const { error } = await window.supabaseClient
