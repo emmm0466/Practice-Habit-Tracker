@@ -738,3 +738,17 @@ h1 { font-family: "Nunito", sans-serif; font-weight: 800; font-size: 32px; lette
     flex-basis: 29px;
   }
 }
+/* SUNFLOWER BRANDING */
+.brand-sunflower {
+  width: 38px;
+  height: 38px;
+  flex: 0 0 38px;
+  display: block;
+  overflow: visible;
+}
+
+.auth-brand .brand-sunflower {
+  width: 46px;
+  height: 46px;
+  flex-basis: 46px;
+}
