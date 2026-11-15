@@ -1432,6 +1432,7 @@ function showPage() {
   if (page === "classmates") {
   renderClassmates();
   loadIncomingFriendRequests();
+  loadAcceptedFriends();
 }
 }
 window.addEventListener("hashchange", showPage);
