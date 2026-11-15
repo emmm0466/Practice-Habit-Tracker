@@ -761,3 +761,69 @@ h1 { font-family: "Nunito", sans-serif; font-weight: 800; font-size: 32px; lette
   margin-left: 6px;
   overflow: visible;
 }
+/* BOTANICAL MUSICAL PRACTICE ICONS */
+
+.log-icon {
+  width: 44px;
+  height: 44px;
+  flex: 0 0 44px;
+  display: grid;
+  place-items: center;
+  border-radius: 14px;
+}
+
+.log-icon svg {
+  width: 36px;
+  height: 36px;
+  overflow: visible;
+}
+
+.log-icon .note-stem,
+.log-icon .note-flag {
+  fill: none;
+  stroke: var(--note-colour);
+  stroke-width: 3.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.log-icon .note-head {
+  fill: var(--note-colour);
+}
+
+.log-icon .note-leaf {
+  fill: var(--leaf-colour);
+  stroke: var(--note-colour);
+  stroke-width: 0.8;
+}
+
+.log-icon .note-vein {
+  fill: none;
+  stroke: var(--vein-colour);
+  stroke-width: 1.2;
+  stroke-linecap: round;
+}
+
+/* Sage */
+.log-icon-sage {
+  --note-colour: #789579;
+  --leaf-colour: #b4cba7;
+  --vein-colour: #edf3e8;
+  background: #edf3e8;
+}
+
+/* Dusty pink */
+.log-icon-pink {
+  --note-colour: #bd7e8b;
+  --leaf-colour: #e5b5b8;
+  --vein-colour: #fff0ed;
+  background: #f8eaea;
+}
+
+/* Lavender */
+.log-icon-lavender {
+  --note-colour: #9180b6;
+  --leaf-colour: #c2b5dc;
+  --vein-colour: #f4effb;
+  background: #f0edf7;
+}

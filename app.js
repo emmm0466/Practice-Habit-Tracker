@@ -700,11 +700,21 @@ function renderLog() {
     list.innerHTML = '<div class="empty-log">Your first practice session is waiting to be planted. 🌱</div>';
     return;
   }
-  list.innerHTML = entries.map((session) => {
+list.innerHTML = entries.map((session, index) => {
     const day = session.date === todayKey ? "Today" : dateLabel(session.date, { weekday: "short", month: "short", day: "numeric" });
     const note = session.note ? ` · ${escapeHtml(session.note)}` : "";
     const reward = session.tokensEarned ? `<small>+${session.tokensEarned} seed ${session.tokensEarned === 1 ? "token" : "tokens"}</small>` : "<small>Practice session saved</small>";
-    return `<article class="log-entry"><div class="log-icon">♫</div><div class="log-details"><strong>${escapeHtml(session.focus)}</strong><span>${day} · ${escapeHtml(session.instrument)}${note}</span></div><div class="log-duration">${session.minutes} min${reward}</div></article>`;
+    return `<article class="log-entry"><div class="log-icon log-icon-${["sage", "pink", "lavender"][index % 3]}" aria-hidden="true">
+  <svg viewBox="0 0 64 64">
+    <path class="note-stem" d="M38 14 V43"/>
+    <path class="note-flag" d="M38 14 C49 15 53 22 48 30 C46 25 42 23 38 23"/>
+    <ellipse class="note-head" cx="30" cy="44" rx="8" ry="5" transform="rotate(-22 30 44)"/>
+    <path class="note-leaf" d="M35 31 C34 17 45 14 49 22 C48 29 42 32 35 31Z"/>
+    <path class="note-vein" d="M36 30 Q42 24 46 21"/>
+    <path class="note-leaf" d="M31 35 C19 23 10 29 16 38 C20 42 27 39 31 35Z"/>
+    <path class="note-vein" d="M29 35 Q22 33 17 33"/>
+  </svg>
+</div><div class="log-details"><strong>${escapeHtml(session.focus)}</strong><span>${day} · ${escapeHtml(session.instrument)}${note}</span></div><div class="log-duration">${session.minutes} min${reward}</div></article>`;
   }).join("");
 }
 const ENCOURAGEMENTS = [
@@ -749,7 +759,17 @@ function renderCompleteLog() {
       ? escapeHtml(session.teacherFeedback)
       : "No teacher feedback has been recorded for this session.";
     return `<article class="complete-log-entry">
-      <div class="log-entry"><div class="log-icon">♫</div><div class="log-details"><strong>${escapeHtml(session.focus)}</strong><span>${dateLabel(session.date, { weekday: "long", month: "long", day: "numeric", year: "numeric" })} · ${escapeHtml(session.instrument)}</span></div><div class="log-duration">${session.minutes} min</div></div>
+      <div class="log-entry"><div class="log-icon log-icon-${["sage", "pink", "lavender"][index % 3]}" aria-hidden="true">
+  <svg viewBox="0 0 64 64">
+    <path class="note-stem" d="M38 14 V43"/>
+    <path class="note-flag" d="M38 14 C49 15 53 22 48 30 C46 25 42 23 38 23"/>
+    <ellipse class="note-head" cx="30" cy="44" rx="8" ry="5" transform="rotate(-22 30 44)"/>
+    <path class="note-leaf" d="M35 31 C34 17 45 14 49 22 C48 29 42 32 35 31Z"/>
+    <path class="note-vein" d="M36 30 Q42 24 46 21"/>
+    <path class="note-leaf" d="M31 35 C19 23 10 29 16 38 C20 42 27 39 31 35Z"/>
+    <path class="note-vein" d="M29 35 Q22 33 17 33"/>
+  </svg>
+</div><div class="log-details"><strong>${escapeHtml(session.focus)}</strong><span>${dateLabel(session.date, { weekday: "long", month: "long", day: "numeric", year: "numeric" })} · ${escapeHtml(session.instrument)}</span></div><div class="log-duration">${session.minutes} min</div></div>
       <p class="practice-encouragement">${encouragements[index]}</p>
       <div class="session-notes"><p><strong>Your practice notes</strong><span>${note}</span></p><p class="teacher-session-feedback"><strong>Teacher feedback</strong><span>${feedback}</span></p></div>
     </article>`;
