@@ -1515,6 +1515,7 @@ function renderDailyInspiration() {
   document.querySelector("#daily-tip-text").textContent = dailyContent.tip;
 }
 function render() {
+  renderDailyInspiration();
   renderWeek();
   renderFlower();
   renderLog();
