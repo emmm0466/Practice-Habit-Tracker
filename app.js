@@ -2313,6 +2313,12 @@ async function loadStudentData(user) {
   studentDataLoaded = false;
   currentUserId = null;
 
+// Clear the previous account's timer while loading this student.
+state = {
+  ...state,
+  practiceTimer: null,
+};
+renderPracticeTimer();
   const { data, error } = await window.supabaseClient
     .from("student_data")
     .select("state")
@@ -2338,6 +2344,7 @@ async function loadStudentData(user) {
     }
 
     state = loadState(data.state);
+    renderPracticeTimer();
 
     // Save locally only; cloud sync is still disabled here.
     if (!saveState()) {
