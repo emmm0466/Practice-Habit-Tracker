@@ -1442,21 +1442,59 @@ function awardWeeklyMilestones(sessions, week, previousRewards) {
   const old = previousRewards[week] || {};
   const earned = [];
   const updatedWeek = { ...old };
-  const weeklyTargetMinutes = Number.isInteger(old.weeklyTargetMinutes) ? old.weeklyTargetMinutes : state.weeklyTargetMinutes;
-  const expectedPracticeDays = Number.isInteger(old.expectedPracticeDays) ? old.expectedPracticeDays : state.expectedPracticeDays;
-  if (!old.consistency && practiceDays >= expectedPracticeDays) {
+
+  const weeklyTargetMinutes = Number.isInteger(old.weeklyTargetMinutes)
+    ? old.weeklyTargetMinutes
+    : state.weeklyTargetMinutes;
+
+  const expectedPracticeDays = Number.isInteger(old.expectedPracticeDays)
+    ? old.expectedPracticeDays
+    : state.expectedPracticeDays;
+
+  const alreadyAwarded = weekSessions.reduce(
+    (total, session) => total + session.tokensEarned,
+    0
+  );
+
+  let availableTokens = Math.max(0, MAX_WEEKLY_TOKENS - alreadyAwarded);
+
+  // Preserve the existing weekly achievement rewards.
+  if (!old.consistency && practiceDays >= expectedPracticeDays && availableTokens > 0) {
     updatedWeek.consistency = true;
     earned.push("consistency");
+    availableTokens--;
   }
-  if (!old.goal && minutes >= weeklyTargetMinutes) {
+
+  if (!old.goal && minutes >= weeklyTargetMinutes && availableTokens > 0) {
     updatedWeek.goal = true;
     earned.push("weekly goal");
+    availableTokens--;
   }
+
+  // Award additional tokens for cumulative weekly practice milestones.
+  const practiceMilestones = [30, 60, 90, 120, 180, 240];
+
+  const awardedMilestones = Array.isArray(old.minuteMilestones)
+    ? old.minuteMilestones.filter(Number.isInteger)
+    : [];
+
+  for (const milestone of practiceMilestones) {
+    if (
+      minutes >= milestone &&
+      !awardedMilestones.includes(milestone) &&
+      availableTokens > 0
+    ) {
+      earned.push(`${milestone}-minute`);
+      awardedMilestones.push(milestone);
+      availableTokens--;
+    }
+  }
+
+  updatedWeek.minuteMilestones = awardedMilestones;
   updatedWeek.weeklyTargetMinutes = weeklyTargetMinutes;
   updatedWeek.expectedPracticeDays = expectedPracticeDays;
-  const alreadyAwarded = weekSessions.reduce((total, session) => total + session.tokensEarned, 0);
-  const availableWeeklyAwards = Math.max(0, MAX_WEEKLY_TOKENS - alreadyAwarded);
-  return { earned: earned.slice(0, availableWeeklyAwards), updatedWeek };
+
+  return { earned, updatedWeek };
 }
 function snapshotExistingWeeklyGoals(sessions, weeklyRewards) {
   const updatedRewards = { ...weeklyRewards };
