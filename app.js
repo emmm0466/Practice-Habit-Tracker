@@ -1483,7 +1483,11 @@ function updateGoalDialog() {
 }
 
 document.querySelector("#today-label").textContent = new Date().toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" });
-document.querySelector(".eyebrow").innerHTML = `${new Date().toLocaleDateString(undefined, { weekday: "long", day: "numeric", month: "long" }).toUpperCase()} <span class="eyebrow-dot">✳</span> A FRESH START`;
+document.querySelector("#dashboard-date").textContent = new Date().toLocaleDateString("en-AU", {
+  weekday: "long",
+  day: "numeric",
+  month: "long"
+}).toUpperCase();
 document.querySelector("#dashboard-greeting").textContent = `${new Date().getHours() < 12 ? "Good morning" : new Date().getHours() < 18 ? "Good afternoon" : "Good evening"}, ${DEMO_PROFILE.student.firstName}`;
 document.querySelector("#student-display-name").textContent = DEMO_PROFILE.student.firstName;
 document.querySelector("#student-avatar").textContent = DEMO_PROFILE.student.firstName[0].toUpperCase();
