@@ -1133,6 +1133,66 @@ async function loadFriendsGarden() {
     </div>
   `).join("");
 }
+
+async function syncSharedGardenSummary() {
+  if (!currentUserId || !studentDataLoaded) return;
+
+  const garden = (state.garden || []).map(plant => {
+    const growth = growthFor(plant);
+
+    return {
+      flower: plant.flower,
+      growthMinutes: growth.minutes,
+      growthGoalMinutes: growth.fullBloomMinutes,
+      stage: growth.stageName,
+      percent: growth.percent
+    };
+  });
+
+  const weekSessions = sessionsForCurrentWeek();
+  const weeklyMinutes = weekSessions.reduce(
+    (total, session) => total + session.minutes,
+    0
+  );
+
+  const achievements = [];
+
+  if (garden.some(plant => plant.percent === 100)) {
+    achievements.push("First Bloom");
+  }
+
+  if (
+    state.weeklyTargetMinutes > 0 &&
+    weeklyMinutes >= state.weeklyTargetMinutes
+  ) {
+    achievements.push("Weekly Goal");
+  }
+
+  if (getStreak() >= 3) {
+    achievements.push("3-Day Streak");
+  }
+
+  if (new Set(garden.map(plant => plant.flower)).size >= 3) {
+    achievements.push("Garden Collector");
+  }
+
+  const { error } = await window.supabaseClient
+    .from("shared_garden_summaries")
+    .upsert({
+      user_id: currentUserId,
+      garden,
+      weekly_minutes: weeklyMinutes,
+      achievements,
+      updated_at: new Date().toISOString()
+    }, {
+      onConflict: "user_id"
+    });
+
+  if (error) {
+    console.error("Could not update shared garden:", error);
+  }
+}
+
 // Connect the Search button
 document.querySelector("#friend-search-button")
   .addEventListener("click", searchFriends);
