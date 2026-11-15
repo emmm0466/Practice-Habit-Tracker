@@ -245,8 +245,14 @@ function loadState(savedOverride) {
     ? saved.activePlantId
     : garden.find((plant) => growthFor(plant).stage < GROWTH_STAGES.length - 1)?.id || garden[garden.length - 1]?.id;
 
-  return {
+return {
     version: 2,
+    practiceTimer:
+  saved.practiceTimer &&
+  typeof saved.practiceTimer === "object" &&
+  !Array.isArray(saved.practiceTimer)
+    ? saved.practiceTimer
+    : null,
     sessions,
     seedTokens,
     unlocked: [...new Set([...unlocked, ...garden.map((plant) => plant.flower)])],
