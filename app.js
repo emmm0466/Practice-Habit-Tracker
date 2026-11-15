@@ -1635,6 +1635,69 @@ document.querySelector("#close-goal").addEventListener("click", () => goalDialog
 goalDialog.addEventListener("click", (event) => {
   if (event.target === goalDialog) goalDialog.close();
 });
+document.querySelector("#profile-form").addEventListener("submit", async (event) => {
+  event.preventDefault();
+
+  const profileForm = event.currentTarget;
+  if (!profileForm.reportValidity()) return;
+
+  if (!currentUserId) {
+    showToast("Please log in to update your profile.");
+    return;
+  }
+
+  const formData = new FormData(profileForm);
+  const displayName = String(formData.get("displayName") || "").trim();
+  const instrument = String(formData.get("instrument") || "").trim();
+  const yearLevel = String(formData.get("yearLevel") || "").trim();
+
+  if (!displayName || !instrument || !yearLevel) {
+    showToast("Please complete all profile fields.");
+    return;
+  }
+
+  const { error: detailsError } = await window.supabaseClient
+    .from("student_profiles")
+    .upsert({
+      user_id: currentUserId,
+      instrument,
+      year_level: yearLevel,
+      updated_at: new Date().toISOString(),
+    }, { onConflict: "user_id" });
+
+  if (detailsError) {
+    console.error("Could not save student details:", detailsError);
+    showToast("Could not save your musical details. Please try again.");
+    return;
+  }
+
+  const { error: profileError } = await window.supabaseClient
+    .from("profiles")
+    .upsert({
+      id: currentUserId,
+      display_name: displayName,
+    }, { onConflict: "id" });
+
+  if (profileError) {
+    console.error("Could not save display name:", profileError);
+    showToast("Your musical details were saved, but your name could not be updated.");
+    return;
+  }
+
+  document.querySelector("#student-display-name").textContent = displayName;
+  document.querySelector("#student-avatar").textContent = displayName[0].toUpperCase();
+  document.querySelector("#student-instrument-year").textContent =
+    `${instrument} · ${yearLevel}`;
+
+  const hour = new Date().getHours();
+  const greeting = hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
+
+  document.querySelector("#dashboard-greeting").textContent =
+    `${greeting}, ${displayName}`;
+
+  profileDialog.close();
+  showToast("Your profile has been updated!");
+});
 goalForm.addEventListener("submit", (event) => {
   event.preventDefault();
   if (!goalForm.reportValidity()) return;
