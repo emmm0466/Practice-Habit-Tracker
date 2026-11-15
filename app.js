@@ -498,17 +498,72 @@ function renderWeek() {
   renderFriends(total);
   renderWeekHistory();
 }
-function renderFriends(studentMinutes) {
-  const friends = [
-    { name: "Lily Chen", instrument: "Flute", minutes: 85, initial: "L", avatar: "avatar-peach", flower: "🌼" },
-    { name: "Alex Rivera", instrument: "Piano", minutes: 70, initial: "A", avatar: "avatar-blue", flower: "🌷" },
-    { name: DEMO_PROFILE.student.firstName, instrument: "Violin", minutes: studentMinutes, initial: DEMO_PROFILE.student.firstName[0].toUpperCase(), avatar: "avatar-green", flower: "🌱", isYou: true },
-    { name: "Noah Park", instrument: "Cello", minutes: 35, initial: "N", avatar: "avatar-lilac", flower: "🌿" },
-  ].sort((a, b) => b.minutes - a.minutes);
-  document.querySelector("#friend-list").innerHTML = friends.map((friend, index) => {
-    const minutes = friend.isYou ? `<span id="leaderboard-minutes">${friend.minutes}</span>` : friend.minutes;
-    return `<div class="friend-row${friend.isYou ? " is-you" : ""}"><span class="friend-rank">${index + 1}</span><div class="friend-avatar ${friend.avatar}">${friend.initial}</div><div class="friend-info"><strong>${friend.name}${friend.isYou ? ' <span class="you-label">YOU</span>' : ""}</strong><small>${friend.instrument} · ${minutes} min</small></div><div class="friend-flower">${friend.flower}</div></div>`;
-  }).join("");
+async function renderFriends(studentMinutes) {
+  const container = document.querySelector("#friend-list");
+  if (!container) return;
+
+  const friends = [{
+    name: DEMO_PROFILE.student.firstName,
+    minutes: studentMinutes,
+    initial: DEMO_PROFILE.student.firstName[0].toUpperCase(),
+    avatar: "avatar-green",
+    flower: "🌱",
+    isYou: true
+  }];
+
+  if (currentUserId) {
+    const { data: friendships, error } = await window.supabaseClient
+      .from("friend_requests")
+      .select("requester_id, recipient_id")
+      .eq("status", "accepted")
+      .or(`requester_id.eq.${currentUserId},recipient_id.eq.${currentUserId}`);
+
+    if (error) {
+      console.error("Could not load dashboard friends:", error);
+    } else {
+      const friendIds = friendships.map(friendship =>
+        friendship.requester_id === currentUserId
+          ? friendship.recipient_id
+          : friendship.requester_id
+      );
+
+      if (friendIds.length > 0) {
+        const { data: profiles, error: profileError } = await window.supabaseClient
+          .from("profiles")
+          .select("id, display_name")
+          .in("id", friendIds);
+
+        if (profileError) {
+          console.error("Could not load dashboard friend names:", profileError);
+        } else {
+          const avatars = ["avatar-peach", "avatar-blue", "avatar-lilac"];
+          const flowers = ["🌼", "🌷", "🌿"];
+
+          profiles.forEach((profile, index) => {
+            friends.push({
+              name: profile.display_name,
+              initial: profile.display_name[0].toUpperCase(),
+              avatar: avatars[index % avatars.length],
+              flower: flowers[index % flowers.length],
+              isYou: false
+            });
+          });
+        }
+      }
+    }
+  }
+
+  container.innerHTML = friends.map((friend, index) => `
+    <div class="friend-row${friend.isYou ? " is-you" : ""}">
+      <span class="friend-rank">${index + 1}</span>
+      <div class="friend-avatar ${friend.avatar}">${escapeHtml(friend.initial)}</div>
+      <div class="friend-info">
+        <strong>${escapeHtml(friend.name)}${friend.isYou ? ' <span class="you-label">YOU</span>' : ""}</strong>
+        <small>${friend.isYou ? `${friend.minutes} min` : "Connected friend"}</small>
+      </div>
+      <div class="friend-flower">${friend.flower}</div>
+    </div>
+  `).join("");
 }
 function getStreak() {
   const practiced = new Set(state.sessions.map((session) => session.date));
