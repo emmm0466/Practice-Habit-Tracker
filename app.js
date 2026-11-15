@@ -1378,7 +1378,10 @@ function showPage() {
   });
   if (page === "garden") renderGardenPage();
   if (page === "practice-log") renderCompleteLog();
-  if (page === "classmates") renderClassmates();
+  if (page === "classmates") {
+  renderClassmates();
+  loadIncomingFriendRequests();
+}
 }
 window.addEventListener("hashchange", showPage);
 render();
