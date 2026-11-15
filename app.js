@@ -985,6 +985,57 @@ async function loadAcceptedFriends() {
     container.textContent = "Please log in to view your friends.";
     return;
   }
+  
+  const { data: friendships, error } = await window.supabaseClient
+    .from("friend_requests")
+    .select("requester_id, recipient_id")
+    .eq("status", "accepted")
+    .or(`requester_id.eq.${currentUserId},recipient_id.eq.${currentUserId}`);
+
+  if (error) {
+    console.error("Could not load friends:", error);
+    container.textContent = "Could not load your friends.";
+    return;
+  }
+
+  const friendIds = friendships.map(friendship =>
+    friendship.requester_id === currentUserId
+      ? friendship.recipient_id
+      : friendship.requester_id
+  );
+
+  if (friendIds.length === 0) {
+    container.textContent = "You haven't connected with any friends yet.";
+    return;
+  }
+
+  const { data: profiles, error: profileError } = await window.supabaseClient
+    .from("profiles")
+    .select("id, display_name")
+    .in("id", friendIds);
+
+  if (profileError) {
+    console.error("Could not load friend profiles:", profileError);
+    container.textContent = "Could not load friend names.";
+    return;
+  }
+
+  container.innerHTML = profiles.map(profile => `
+    <div class="friend-row">
+      <span>${escapeHtml(profile.display_name)}</span>
+      <span class="friend-status">Friends</span>
+    </div>
+  `).join("");
+}
+async function loadFriendsGarden() {
+  const container = document.querySelector("#friends-garden-list");
+
+  if (!container) return;
+
+  if (!currentUserId) {
+    container.textContent = "Please log in to view your friends.";
+    return;
+  }
 
   const { data: friendships, error } = await window.supabaseClient
     .from("friend_requests")
@@ -1452,7 +1503,7 @@ function showPage() {
   }
 
   if (page === "friends") {
-    loadAcceptedFriends();
+    loadFriendsGarden();
   }
 }
 window.addEventListener("hashchange", showPage);
