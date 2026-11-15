@@ -481,3 +481,178 @@ h1 { font-family: "Nunito", sans-serif; font-weight: 800; font-size: 32px; lette
         padding: 26px 22px;
     }
 }
+
+/* My Friends - landscape garden cards */
+
+/* My Friends - landscape garden cards */
+
+#friends-garden-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.friend-progress-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 190px;
+  gap: 16px 22px;
+  padding: 20px;
+  border-radius: 16px;
+  background: #fff;
+  border: 1px solid #e8eee4;
+  width: 100%;
+}
+
+.friend-card-heading {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.friend-card-heading h3 {
+  margin: 0;
+  color: #405442;
+  font-size: 17px;
+}
+
+.friend-garden-flowers {
+  grid-column: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.friend-flower-card {
+  display: grid;
+  grid-template-columns: 115px minmax(0, 1fr);
+  grid-template-rows: auto auto auto auto;
+  align-items: center;
+  gap: 6px 18px;
+  padding: 12px;
+  min-height: 145px;
+  border-radius: 12px;
+  background: #f8faf5;
+  border: 1px solid #edf1e9;
+}
+
+.friend-flower-card .plant-svg {
+  grid-column: 1;
+  grid-row: 1 / 5;
+  width: 105px;
+  height: 135px;
+  justify-self: center;
+}
+
+.friend-flower-card h4 {
+  grid-column: 2;
+  margin: 0;
+  color: #536b53;
+  font-size: 14px;
+}
+
+.friend-flower-card p {
+  grid-column: 2;
+  margin: 0;
+  color: #82917f;
+  font-size: 11px;
+}
+
+.friend-progress-track {
+  grid-column: 2;
+  width: 100%;
+  height: 7px;
+  overflow: hidden;
+  border-radius: 10px;
+  background: #e7e9e2;
+}
+
+.friend-progress-track > div {
+  height: 100%;
+  border-radius: inherit;
+  background: #83a779;
+}
+
+.friend-flower-card small {
+  grid-column: 2;
+  color: #82917f;
+  font-size: 10px;
+}
+
+.friend-weekly-practice {
+  grid-column: 2;
+  grid-row: 2;
+  align-self: start;
+  padding: 14px;
+  border-radius: 12px;
+  background: #f3f7ef;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.friend-weekly-practice strong {
+  color: #456a4a;
+  font-size: 25px;
+}
+
+.friend-weekly-practice span {
+  color: #82917f;
+  font-size: 11px;
+}
+
+.friend-achievements {
+  grid-column: 2;
+  grid-row: 3;
+  display: flex;
+  flex-wrap: wrap;
+  align-content: flex-start;
+  gap: 7px;
+}
+
+.friend-achievements h4 {
+  width: 100%;
+  margin: 0 0 3px;
+  color: #536b53;
+  font-size: 12px;
+}
+
+.friend-achievement {
+  padding: 7px 10px;
+  border-radius: 20px;
+  background: #f0edf7;
+  color: #76658f;
+  font-size: 10px;
+}
+
+@media (max-width: 600px) {
+  .friend-progress-card {
+    grid-template-columns: 1fr;
+    padding: 14px;
+  }
+
+  .friend-garden-flowers,
+  .friend-weekly-practice,
+  .friend-achievements {
+    grid-column: 1;
+  }
+
+  .friend-weekly-practice {
+    grid-row: auto;
+  }
+
+  .friend-achievements {
+    grid-row: auto;
+  }
+  
+  .friend-flower-card {
+    grid-template-columns: 90px minmax(0, 1fr);
+    gap: 6px 10px;
+    padding: 9px;
+  }
+
+  .friend-flower-card .plant-svg {
+    width: 85px;
+    height: 110px;
+  }
+}

@@ -1200,7 +1200,7 @@ async function loadFriendsGarden() {
       };
 
       return `
-        <div class="friend-flower-card">
+        <div class="friend-flower-card garden-plant growth-${growth.stageClass} plant-health-healthy" data-friend-plant="${profile.id}-${index}">
           ${plantSvg(
             safePlant,
             health,
@@ -1254,6 +1254,32 @@ async function loadFriendsGarden() {
       </article>
     `;
   }).join("");
+
+  profiles.forEach(profile => {
+    const summary = summaryByUser.get(profile.id);
+    if (!summary || !Array.isArray(summary.garden)) return;
+
+    summary.garden.forEach((plant, index) => {
+      const svg = container.querySelector(
+        `[data-friend-plant="${profile.id}-${index}"] .plant-svg`
+      );
+
+      if (!svg) return;
+
+      const safePlant = {
+        id: `friend-${profile.id}-${index}`,
+        flower: plant.flower,
+        growthMinutes: plant.growthMinutes,
+        growthGoalMinutes: plant.growthGoalMinutes,
+        growthFloor: 0
+      };
+
+      updatePlantSvg(svg, safePlant, {
+        status: "healthy",
+        label: "Growing"
+      });
+    });
+  });
 }
 
 
