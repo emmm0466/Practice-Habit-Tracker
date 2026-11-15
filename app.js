@@ -962,6 +962,20 @@ async function loadIncomingFriendRequests() {
     });
   });
 }
+async function declineFriendRequest(requestId) {
+  const { error } = await window.supabaseClient
+    .from("friend_requests")
+    .update({ status: "declined" })
+    .eq("id", requestId);
+
+  if (error) {
+    console.error("Decline friend request failed:", error);
+    showToast("Could not decline friend request. Please try again.");
+    return;
+  }
+
+  showToast("Friend request declined.");
+}
 // Connect the Search button
 document.querySelector("#friend-search-button")
   .addEventListener("click", searchFriends);
