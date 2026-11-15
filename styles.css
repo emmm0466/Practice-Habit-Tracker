@@ -827,3 +827,90 @@ h1 { font-family: "Nunito", sans-serif; font-weight: 800; font-size: 32px; lette
   --vein-colour: #f4effb;
   background: #f0edf7;
 }
+
+/* ================================
+   BOTANICAL ACCOUNT MENU
+================================ */
+
+.account-menu {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.account-button {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  border: 1px solid #dce7d8;
+  background: #edf3e9;
+  color: #547451;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 6px rgba(64, 91, 61, 0.06);
+}
+
+.account-button span {
+  font-size: 23px;
+  line-height: 1;
+}
+
+.account-button:hover {
+  background: #dfead9;
+  border-color: #b9cdb2;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 10px rgba(64, 91, 61, 0.12);
+}
+
+.account-button[aria-expanded="true"] {
+  background: #dfead9;
+  border-color: #a9c19f;
+}
+
+/* Dropdown menu */
+
+.account-dropdown {
+  position: absolute;
+  top: calc(100% + 12px);
+  right: 0;
+  min-width: 165px;
+  padding: 7px;
+  background: #fffdf8;
+  border: 1px solid #e9e6dc;
+  border-radius: 13px;
+  box-shadow: 0 8px 24px rgba(54, 66, 48, 0.12);
+  z-index: 100;
+}
+
+.account-dropdown[hidden] {
+  display: none;
+}
+
+.account-dropdown button {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 12px;
+  border: none;
+  border-radius: 9px;
+  background: transparent;
+  color: #596b53;
+  font-family: inherit;
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.account-dropdown button:hover {
+  background: #f8eeeb;
+  color: #a66e70;
+}
+
+.account-dropdown button span {
+  font-size: 17px;
+}
