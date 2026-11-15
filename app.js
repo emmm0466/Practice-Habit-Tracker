@@ -886,6 +886,82 @@ async function acceptFriendRequest(requestId) {
   showToast("Friend request accepted!");
   await searchFriends();
 }
+async function loadIncomingFriendRequests() {
+  const container = document.querySelector("#incoming-friend-requests");
+
+  if (!currentUserId) {
+    container.textContent = "Please log in to view requests.";
+    return;
+  }
+
+  const { data: requests, error } = await window.supabaseClient
+    .from("friend_requests")
+    .select("id, requester_id, created_at")
+    .eq("recipient_id", currentUserId)
+    .eq("status", "pending");
+
+  if (error) {
+    console.error("Could not load incoming requests:", error);
+    container.textContent = "Could not load friend requests.";
+    return;
+  }
+
+  if (!requests || requests.length === 0) {
+    container.textContent = "No pending requests.";
+    return;
+  }
+
+  const requesterIds = requests.map(request => request.requester_id);
+
+  const { data: profiles, error: profileError } = await window.supabaseClient
+    .from("profiles")
+    .select("id, display_name")
+    .in("id", requesterIds);
+
+  if (profileError) {
+    console.error("Could not load requester profiles:", profileError);
+    container.textContent = "Could not load student names.";
+    return;
+  }
+
+  container.innerHTML = requests.map(request => {
+    const profile = profiles.find(p => p.id === request.requester_id);
+
+    return `
+      <div class="friend-row">
+        <span>${escapeHtml(profile?.display_name || "Student")}</span>
+        <button
+          type="button"
+          class="button button-primary accept-request-button"
+          data-request-id="${escapeHtml(request.id)}"
+        >
+          Accept
+        </button>
+        <button
+          type="button"
+          class="button decline-request-button"
+          data-request-id="${escapeHtml(request.id)}"
+        >
+          Decline
+        </button>
+      </div>
+    `;
+  }).join("");
+
+  container.querySelectorAll(".accept-request-button").forEach(button => {
+    button.addEventListener("click", async () => {
+      await acceptFriendRequest(button.dataset.requestId);
+      await loadIncomingFriendRequests();
+    });
+  });
+
+  container.querySelectorAll(".decline-request-button").forEach(button => {
+    button.addEventListener("click", async () => {
+      await declineFriendRequest(button.dataset.requestId);
+      await loadIncomingFriendRequests();
+    });
+  });
+}
 // Connect the Search button
 document.querySelector("#friend-search-button")
   .addEventListener("click", searchFriends);
