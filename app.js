@@ -1084,6 +1084,7 @@ async function loadAcceptedFriends() {
     </div>
   `).join("");
 }
+
 async function loadFriendsGarden() {
   const container = document.querySelector("#friends-garden-list");
 
@@ -1093,6 +1094,8 @@ async function loadFriendsGarden() {
     container.textContent = "Please log in to view your friends.";
     return;
   }
+
+  container.textContent = "Growing your friends' gardens...";
 
   const { data: friendships, error } = await window.supabaseClient
     .from("friend_requests")
@@ -1128,13 +1131,131 @@ async function loadFriendsGarden() {
     return;
   }
 
-  container.innerHTML = profiles.map(profile => `
-    <div class="friend-row">
-      <span>${escapeHtml(profile.display_name)}</span>
-      <span class="friend-status">Friends</span>
-    </div>
-  `).join("");
+  const { data: summaries, error: summaryError } = await window.supabaseClient
+    .from("shared_garden_summaries")
+    .select("user_id, garden, weekly_minutes, achievements")
+    .in("user_id", friendIds);
+
+  if (summaryError) {
+    console.error("Could not load shared gardens:", summaryError);
+    container.textContent = "Could not load your friends' garden progress.";
+    return;
+  }
+
+  const summaryByUser = new Map(
+    summaries.map(summary => [summary.user_id, summary])
+  );
+
+  container.innerHTML = profiles.map(profile => {
+    const summary = summaryByUser.get(profile.id);
+
+    if (!summary) {
+      return `
+        <article class="friend-progress-card">
+          <h3>${escapeHtml(profile.display_name)}</h3>
+          <p class="friend-status">Friends</p>
+          <p>Their garden is getting ready to bloom 🌱</p>
+        </article>
+      `;
+    }
+
+    const garden = Array.isArray(summary.garden)
+      ? summary.garden
+      : [];
+
+    const weeklyMinutes = Number.isFinite(summary.weekly_minutes)
+      ? Math.max(0, summary.weekly_minutes)
+      : 0;
+
+    const achievements = Array.isArray(summary.achievements)
+      ? summary.achievements
+      : [];
+
+    const flowers = garden.map((plant, index) => {
+      const flowerExists = FLOWERS.some(
+        item => item.name === plant.flower
+      );
+
+      if (
+        !flowerExists ||
+        !Number.isFinite(plant.growthMinutes) ||
+        !Number.isFinite(plant.growthGoalMinutes) ||
+        plant.growthGoalMinutes <= 0
+      ) {
+        return "";
+      }
+
+      const safePlant = {
+        id: `friend-${profile.id}-${index}`,
+        flower: plant.flower,
+        growthMinutes: Math.max(0, plant.growthMinutes),
+        growthGoalMinutes: plant.growthGoalMinutes,
+        growthFloor: 0
+      };
+
+      const growth = growthFor(safePlant);
+      const health = {
+        status: "healthy",
+        label: "Growing"
+      };
+
+      return `
+        <div class="friend-flower-card">
+          ${plantSvg(
+            safePlant,
+            health,
+            `friend-${profile.id}-${index}`
+          )}
+          <h4>${escapeHtml(plant.flower)}</h4>
+          <p>${escapeHtml(plant.stage || growth.stageName)}</p>
+          <div
+            class="friend-progress-track"
+            role="progressbar"
+            aria-label="${escapeHtml(plant.flower)} growth"
+            aria-valuemin="0"
+            aria-valuemax="100"
+            aria-valuenow="${growth.percent}"
+          >
+            <div style="width: ${growth.percent}%"></div>
+          </div>
+          <small>${growth.percent}% grown</small>
+        </div>
+      `;
+    }).join("");
+
+    const achievementDisplay = achievements.length
+      ? achievements.map(achievement => `
+          <span class="friend-achievement">
+            ✨ ${escapeHtml(achievement)}
+          </span>
+        `).join("")
+      : "<p>No achievements yet. Their journey is just beginning!</p>";
+
+    return `
+      <article class="friend-progress-card">
+        <div class="friend-card-heading">
+          <h3>${escapeHtml(profile.display_name)}</h3>
+          <span class="friend-status">Friends</span>
+        </div>
+
+        <div class="friend-weekly-practice">
+          <strong>${weeklyMinutes}</strong>
+          <span>minutes practised this week</span>
+        </div>
+
+        <div class="friend-garden-flowers">
+          ${flowers || "<p>No flowers to display yet.</p>"}
+        </div>
+
+        <div class="friend-achievements">
+          <h4>Achievements</h4>
+          ${achievementDisplay}
+        </div>
+      </article>
+    `;
+  }).join("");
 }
+
 
 async function syncSharedGardenSummary() {
   if (!currentUserId || !studentDataLoaded) return;
