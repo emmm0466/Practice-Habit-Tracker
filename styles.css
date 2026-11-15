@@ -656,3 +656,85 @@ h1 { font-family: "Nunito", sans-serif; font-weight: 800; font-size: 32px; lette
     height: 110px;
   }
 }
+
+/* ==========================================
+   PETAL PRACTICE — BOTANICAL NAVIGATION ICONS
+   ========================================== */
+
+/* Keep the reusable SVG library invisible */
+.nav-artwork-library {
+  position: absolute;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+/* Consistent illustration sizing */
+.nav-illustration {
+  display: block;
+  width: 30px;
+  height: 30px;
+  flex: 0 0 30px;
+  overflow: visible;
+}
+
+/* Align illustrations with navigation text */
+.nav-link {
+  gap: 11px;
+}
+
+.space-nav-group summary {
+  gap: 11px;
+}
+
+/* Slightly smaller illustrations for nested links */
+.space-nav-links .nav-illustration {
+  width: 27px;
+  height: 27px;
+  flex-basis: 27px;
+}
+
+/* Remove old character-icon styling */
+.nav-link span,
+.space-nav-icon {
+  display: none;
+}
+
+/* Mobile navigation illustrations */
+@media (max-width: 610px) {
+  .mobile-nav .nav-illustration {
+    width: 25px;
+    height: 25px;
+    flex-basis: 25px;
+  }
+
+  .mobile-nav > .nav-link {
+    gap: 9px;
+  }
+
+  .mobile-nav .space-nav-group summary {
+    gap: 9px;
+  }
+
+  .mobile-nav .space-nav-links .nav-illustration {
+    width: 23px;
+    height: 23px;
+    flex-basis: 23px;
+  }
+}
+
+/* Tablet sidebar illustrations */
+@media (max-width: 790px) and (min-width: 611px) {
+  .main-nav .nav-illustration {
+    width: 34px;
+    height: 34px;
+    flex-basis: 34px;
+  }
+
+  .space-nav-links .nav-illustration {
+    width: 29px;
+    height: 29px;
+    flex-basis: 29px;
+  }
+}
