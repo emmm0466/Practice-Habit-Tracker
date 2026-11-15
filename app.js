@@ -1814,7 +1814,48 @@ function updateAuthScreen(user) {
     signupForm.reset();
   }
 }
+async function loadStudentProfile(user) {
+  if (!user) return;
 
+  // Load the student's display name.
+  const { data: profile, error: profileError } = await window.supabaseClient
+    .from("profiles")
+    .select("display_name")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  if (profileError) {
+    console.error("Could not load student profile:", profileError);
+    return;
+  }
+
+  const displayName = profile?.display_name || "Student";
+
+  // Load the student's instrument and year level.
+  const { data: details, error: detailsError } = await window.supabaseClient
+    .from("student_profiles")
+    .select("instrument, year_level")
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  if (detailsError) {
+    console.error("Could not load student details:", detailsError);
+  }
+
+  document.querySelector("#student-display-name").textContent = displayName;
+  document.querySelector("#student-avatar").textContent = displayName[0].toUpperCase();
+
+  document.querySelector("#dashboard-greeting").textContent =
+    `${new Date().getHours() < 12 ? "Good morning" : new Date().getHours() < 18 ? "Good afternoon" : "Good evening"}, ${displayName}`;
+
+  const instrument = details?.instrument || "";
+  const yearLevel = details?.year_level || "";
+
+  document.querySelector("#student-instrument-year").textContent =
+    instrument && yearLevel
+      ? `${instrument} · ${yearLevel}`
+      : "Add your instrument and year level";
+}
 async function loadStudentData(user) {
   if (!user) return;
 
@@ -1856,6 +1897,7 @@ async function loadStudentData(user) {
 
     currentUserId = user.id;
     studentDataLoaded = true;
+await loadStudentProfile(user);
 
     render();
 showPage();
@@ -1888,6 +1930,7 @@ return;
 
   currentUserId = user.id;
   studentDataLoaded = true;
+  await loadStudentProfile(user);
   showToast("Your existing practice data has been linked to your account!");
 }
 
