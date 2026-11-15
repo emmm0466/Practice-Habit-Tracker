@@ -1407,33 +1407,53 @@ document.querySelector("#mini-garden").addEventListener("click", (event) => {
   if (storageReadFailed) warnStorageUnavailable();
   showToast(`${flower.name} unlocked and planted. Your practice will help it grow next.`);
 });
+
 function showPage() {
   const page = {
     "#garden-page": "garden",
     "#practice-log-page": "practice-log",
     "#classmates-page": "classmates",
+    "#friends-page": "friends",
   }[window.location.hash] || "dashboard";
-  const titles = { dashboard: "Dashboard", garden: "My garden", "practice-log": "Practice log", classmates: "Classmates" };
+
+  const titles = {
+    dashboard: "Dashboard",
+    garden: "My garden",
+    "practice-log": "Practice log",
+    classmates: "Find Friends",
+    friends: "My Friends",
+  };
+
   document.querySelectorAll("[data-page-view]").forEach((view) => {
     view.hidden = view.dataset.pageView !== page;
   });
+
   document.querySelector("#page-title").textContent = titles[page];
+
   document.querySelectorAll(".nav-link").forEach((link) => {
     link.classList.toggle("active", link.dataset.page === page);
   });
+
   const inYourSpace = page !== "dashboard";
+
   document.querySelectorAll(".space-nav-group").forEach((group) => {
     const summary = group.querySelector("summary");
     summary.classList.toggle("active", inYourSpace);
     if (inYourSpace) group.open = true;
   });
+
   if (page === "garden") renderGardenPage();
   if (page === "practice-log") renderCompleteLog();
+
   if (page === "classmates") {
-  renderClassmates();
-  loadIncomingFriendRequests();
-  loadAcceptedFriends();
-}
+    renderClassmates();
+    loadIncomingFriendRequests();
+    loadAcceptedFriends();
+  }
+
+  if (page === "friends") {
+    loadAcceptedFriends();
+  }
 }
 window.addEventListener("hashchange", showPage);
 render();
