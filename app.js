@@ -761,9 +761,6 @@ function renderCompleteLog() {
   const encouragements = sessionEncouragements(sessions);
   list.innerHTML = sessions.map((session, index) => {
     const note = session.note ? escapeHtml(session.note) : "No student note added.";
-    const feedback = session.teacherFeedback
-      ? escapeHtml(session.teacherFeedback)
-      : "No teacher feedback has been recorded for this session.";
     return `<article class="complete-log-entry">
       <div class="log-entry"><div class="log-icon log-icon-${["sage", "pink", "lavender"][index % 3]}" aria-hidden="true">
   <svg viewBox="0 0 64 64">
@@ -777,7 +774,9 @@ function renderCompleteLog() {
   </svg>
 </div><div class="log-details"><strong>${escapeHtml(session.focus)}</strong><span>${dateLabel(session.date, { weekday: "long", month: "long", day: "numeric", year: "numeric" })} · ${escapeHtml(session.instrument)}</span></div><div class="log-duration">${session.minutes} min</div></div>
       <p class="practice-encouragement">${encouragements[index]}</p>
-      <div class="session-notes"><p><strong>Your practice notes</strong><span>${note}</span></p><p class="teacher-session-feedback"><strong>Teacher feedback</strong><span>${feedback}</span></p></div>
+      <div class="session-notes">
+  <p><strong>Your practice notes</strong><span>${note}</span></p>
+</div>
     </article>`;
   }).join("");
 }
