@@ -962,6 +962,7 @@ async function loadIncomingFriendRequests() {
     });
   });
 }
+
 async function declineFriendRequest(requestId) {
   const { error } = await window.supabaseClient
     .from("friend_requests")
@@ -973,6 +974,9 @@ async function declineFriendRequest(requestId) {
     showToast("Could not decline friend request. Please try again.");
     return;
   }
+
+  showToast("Friend request declined.");
+}
 
 async function loadAcceptedFriends() {
   const container = document.querySelector("#accepted-friends");
@@ -1022,10 +1026,6 @@ async function loadAcceptedFriends() {
       <span class="friend-status">Friends</span>
     </div>
   `).join("");
-}
-
-
-  showToast("Friend request declined.");
 }
 // Connect the Search button
 document.querySelector("#friend-search-button")
@@ -1432,7 +1432,6 @@ function showPage() {
   if (page === "classmates") {
   renderClassmates();
   loadIncomingFriendRequests();
-  loadAcceptedFriends();
 }
 }
 window.addEventListener("hashchange", showPage);
