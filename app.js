@@ -871,6 +871,21 @@ async function sendFriendRequest(profileId) {
   showToast("Friend request sent!");
   await searchFriends();
 }
+async function acceptFriendRequest(requestId) {
+  const { error } = await window.supabaseClient
+    .from("friend_requests")
+    .update({ status: "accepted" })
+    .eq("id", requestId);
+
+  if (error) {
+    console.error("Accept friend request failed:", error);
+    showToast("Could not accept friend request. Please try again.");
+    return;
+  }
+
+  showToast("Friend request accepted!");
+  await searchFriends();
+}
 // Connect the Search button
 document.querySelector("#friend-search-button")
   .addEventListener("click", searchFriends);
