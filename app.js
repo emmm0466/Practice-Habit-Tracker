@@ -1193,11 +1193,15 @@ async function loadFriendsGarden() {
         growthFloor: 0
       };
 
-      const growth = growthFor(safePlant);
-      const health = {
-        status: "healthy",
-        label: "Growing"
-      };
+const growth = growthFor(safePlant);
+growth.percent = Number.isFinite(plant.percent)
+  ? Math.max(0, Math.min(100, plant.percent))
+  : growth.percent;
+
+const health = {
+  status: "healthy",
+  label: "Growing"
+};
 
       return `
         <div class="friend-flower-card garden-plant growth-${growth.stageClass} plant-health-healthy" data-friend-plant="${profile.id}-${index}">
