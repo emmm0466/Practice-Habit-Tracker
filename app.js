@@ -1927,6 +1927,213 @@ form.addEventListener("submit", (event) => {
     : "";
   showToast(`${minutes} minutes added to your ${plantName.toLowerCase()}'s growth.${rewardMessage}`);
 });
+
+/* =================================
+   PETAL PRACTICE TIMER
+================================= */
+
+const timerDisplay = document.querySelector("#practice-timer-display");
+const timerStartButton = document.querySelector("#timer-start");
+const timerPauseButton = document.querySelector("#timer-pause");
+const timerFinishButton = document.querySelector("#timer-finish");
+const timerInstrument = document.querySelector("#timer-instrument");
+const timerFocus = document.querySelector("#timer-focus");
+
+function getTimerElapsedMs(timer) {
+  if (!timer) return 0;
+
+  const accumulated = Number.isFinite(timer.accumulatedMs)
+    ? Math.max(0, timer.accumulatedMs)
+    : 0;
+
+  if (timer.status === "running" && Number.isFinite(timer.startedAt)) {
+    return accumulated + Math.max(0, Date.now() - timer.startedAt);
+  }
+
+  return accumulated;
+}
+
+function renderPracticeTimer() {
+  if (!timerDisplay) return;
+
+  const timer = state.practiceTimer;
+  const elapsedMs = getTimerElapsedMs(timer);
+  const totalSeconds = Math.floor(elapsedMs / 1000);
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+
+  timerDisplay.textContent =
+    `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+
+  const active = timer?.status === "running" || timer?.status === "paused";
+
+  timerStartButton.disabled = active;
+  timerPauseButton.disabled = !active;
+  timerFinishButton.disabled = !active;
+
+  timerPauseButton.textContent =
+    timer?.status === "paused" ? "Resume" : "Pause";
+
+  timerInstrument.disabled = active;
+  timerFocus.disabled = active;
+
+  if (active) {
+    timerInstrument.value = timer.instrument;
+    timerFocus.value = timer.focus;
+  }
+}
+
+function saveTimerState(nextTimer) {
+  const previousState = state;
+
+  state = {
+    ...state,
+    practiceTimer: nextTimer,
+  };
+
+  if (!saveState()) {
+    state = previousState;
+    showToast("Your timer could not be saved. Please try again.");
+    renderPracticeTimer();
+    return false;
+  }
+
+  renderPracticeTimer();
+  return true;
+}
+
+// Start practice
+timerStartButton.addEventListener("click", () => {
+  if (state.practiceTimer) return;
+
+  const nextTimer = {
+    status: "running",
+    startedAt: Date.now(),
+    accumulatedMs: 0,
+    instrument: timerInstrument.value,
+    focus: timerFocus.value,
+  };
+
+  saveTimerState(nextTimer);
+});
+
+// Pause or resume practice
+timerPauseButton.addEventListener("click", () => {
+  const timer = state.practiceTimer;
+  if (!timer) return;
+
+  if (timer.status === "running") {
+    saveTimerState({
+      ...timer,
+      status: "paused",
+      startedAt: null,
+      accumulatedMs: getTimerElapsedMs(timer),
+    });
+  } else if (timer.status === "paused") {
+    saveTimerState({
+      ...timer,
+      status: "running",
+      startedAt: Date.now(),
+    });
+  }
+});
+
+// Finish practice and save the session
+timerFinishButton.addEventListener("click", () => {
+  const timer = state.practiceTimer;
+  if (!timer) return;
+
+  const elapsedMs = getTimerElapsedMs(timer);
+  const minutes = Math.floor(elapsedMs / 60000);
+
+  if (minutes < 1) {
+    saveTimerState(null);
+    showToast("Practise for at least one minute to save a session.");
+    return;
+  }
+
+  if (minutes > 240) {
+    saveTimerState(null);
+    showToast("This session exceeded 240 minutes. Please record it using the manual practice form.");
+    return;
+  }
+
+  const previousState = state;
+  const date = todayKey;
+  const week = startOfWeek(date);
+  const plant = activePlant();
+
+  const session = {
+    id: newId(),
+    date,
+    minutes,
+    instrument: timer.instrument,
+    focus: timer.focus,
+    note: "",
+    createdAt: new Date().toISOString(),
+    tokensEarned: 0,
+  };
+
+  const garden = plant
+    ? state.garden.map((item) =>
+        item.id === plant.id
+          ? { ...item, growthMinutes: item.growthMinutes + minutes }
+          : item
+      )
+    : state.garden;
+
+  const sessions = [...state.sessions, session];
+  const milestones = awardWeeklyMilestones(
+    sessions,
+    week,
+    state.weeklyRewards
+  );
+
+  session.tokensEarned = milestones.earned.length;
+
+  state = {
+    ...state,
+    practiceTimer: null,
+    sessions,
+    garden,
+    activePlantId: plant?.id || state.activePlantId,
+    seedTokens: state.seedTokens + milestones.earned.length,
+    weeklyRewards: {
+      ...state.weeklyRewards,
+      [week]: milestones.updatedWeek,
+    },
+  };
+
+  if (!saveState()) {
+    state = previousState;
+    showToast("Your practice session could not be saved. Your timer has been preserved.");
+    renderPracticeTimer();
+    return;
+  }
+
+  render();
+  renderPracticeTimer();
+
+  const plantName = plant ? plant.flower : "garden";
+  const rewardMessage = milestones.earned.length
+    ? ` You earned ${milestones.earned.length} seed ${
+        milestones.earned.length === 1 ? "token" : "tokens"
+      } for your ${milestones.earned.join(" and ")} milestone${
+        milestones.earned.length > 1 ? "s" : ""
+      }!`
+    : "";
+
+  showToast(
+    `${minutes} minutes added to your ${plantName.toLowerCase()}'s growth.${rewardMessage}`
+  );
+});
+
+// Keep the displayed time updated while practising
+setInterval(renderPracticeTimer, 1000);
+
+// Restore the timer when the page loads
+renderPracticeTimer();
+
 const flowersBeingUnlocked = new Set();
 document.querySelector("#mini-garden").addEventListener("click", (event) => {
   const button = event.target.closest("[data-flower]");
