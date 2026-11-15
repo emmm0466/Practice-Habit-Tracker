@@ -1707,6 +1707,7 @@ showPage();
 
 await loadIncomingFriendRequests();
 await loadAcceptedFriends();
+await syncSharedGardenSummary();
 
 return;
   }
