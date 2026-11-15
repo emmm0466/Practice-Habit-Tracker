@@ -2612,3 +2612,44 @@ window.supabaseClient.auth.getSession().then(async ({ data, error }) => {
     await loadStudentData(user);
   }
 });
+
+// Account menu: open and close the dropdown
+const accountMenuButton = document.querySelector("#account-menu-button");
+const accountDropdown = document.querySelector("#account-dropdown");
+
+if (accountMenuButton && accountDropdown) {
+  accountMenuButton.addEventListener("click", (event) => {
+    event.stopPropagation();
+
+    const isOpening = accountDropdown.hidden;
+    accountDropdown.hidden = !isOpening;
+    accountMenuButton.setAttribute("aria-expanded", String(isOpening));
+  });
+
+  // Close the menu when clicking elsewhere
+  document.addEventListener("click", (event) => {
+    if (!event.target.closest(".account-menu")) {
+      accountDropdown.hidden = true;
+      accountMenuButton.setAttribute("aria-expanded", "false");
+    }
+  });
+}
+
+// Log out of the student's account
+const logoutButton = document.querySelector("#logout-button");
+
+if (logoutButton) {
+  logoutButton.addEventListener("click", async () => {
+    logoutButton.disabled = true;
+    logoutButton.textContent = "Logging out...";
+
+    const { error } = await window.supabaseClient.auth.signOut();
+
+    if (error) {
+      console.error("Could not log out:", error);
+      alert("Sorry, we couldn't log you out. Please try again.");
+      logoutButton.disabled = false;
+      logoutButton.textContent = "↗ Log out";
+    }
+  });
+}
