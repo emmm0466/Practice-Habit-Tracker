@@ -853,9 +853,14 @@ h1 { font-family: "Nunito", sans-serif; font-weight: 800; font-size: 32px; lette
   box-shadow: 0 2px 6px rgba(64, 91, 61, 0.06);
 }
 
-.account-button span {
-  font-size: 23px;
-  line-height: 1;
+.account-flower-icon {
+  width: 23px;
+  height: 23px;
+  fill: none;
+  stroke: #668264;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
 .account-button:hover {
