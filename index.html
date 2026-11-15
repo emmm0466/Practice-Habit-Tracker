@@ -78,20 +78,17 @@
           </details>
         </nav>
         <div class="sidebar-bottom">
-          <div class="teacher-mini">
-            <div class="teacher-avatar" id="teacher-avatar"></div>
-            <div><strong id="teacher-display-name"></strong><span>Your teacher</span></div>
-            <span class="online-dot"></span>
-          </div>
-          <button class="profile-button" type="button" aria-label="Student profile">
-            <div class="profile-avatar" id="student-avatar"></div>
-            <div class="profile-copy">
-  <strong id="student-display-name"></strong>
-  <span id="student-instrument-year"></span>
+  <p class="designer-credit">Designed by Emily Costa ✿</p>
+
+  <button class="profile-button" id="open-profile" type="button" aria-label="Edit student profile">
+    <div class="profile-avatar" id="student-avatar"></div>
+    <div class="profile-copy">
+      <strong id="student-display-name"></strong>
+      <span id="student-instrument-year"></span>
+    </div>
+    <span class="profile-more">···</span>
+  </button>
 </div>
-            <span class="profile-more">···</span>
-          </button>
-        </div>
       </aside>
 
       <main class="main-content" id="overview">
@@ -371,6 +368,38 @@
         <button class="button button-primary submit-practice" type="submit">Save my goal <span>→</span></button>
       </form>
     </dialog>
+    <dialog class="practice-dialog goal-dialog" id="profile-dialog">
+  <form id="profile-form">
+    <div class="dialog-heading">
+      <div>
+        <p class="card-eyebrow">YOUR STUDENT PROFILE</p>
+        <h2>Edit your profile</h2>
+      </div>
+      <button class="close-button" id="close-profile" type="button" aria-label="Close">×</button>
+    </div>
+
+    <p class="dialog-intro">Make your profile yours! Update your name and musical details.</p>
+
+    <label for="profile-name-input">Display name</label>
+    <input id="profile-name-input" name="displayName" type="text" maxlength="50" required />
+
+    <label for="profile-instrument-input">Your instrument</label>
+    <input id="profile-instrument-input" name="instrument" type="text" maxlength="50" placeholder="e.g. Violin, Piano, Guitar" required />
+
+    <label for="profile-year-input">Your year level</label>
+    <select id="profile-year-input" name="yearLevel" required>
+      <option value="">Choose your year level</option>
+      <option value="Year 7">Year 7</option>
+      <option value="Year 8">Year 8</option>
+      <option value="Year 9">Year 9</option>
+      <option value="Year 10">Year 10</option>
+      <option value="Year 11">Year 11</option>
+      <option value="Year 12">Year 12</option>
+    </select>
+
+    <button class="button button-primary submit-practice" type="submit">Save my profile <span>→</span></button>
+  </form>
+</dialog>
     <dialog class="practice-dialog" id="practice-dialog">
       <form id="practice-form">
         <div class="dialog-heading"><div><p class="card-eyebrow">GROW YOUR GARDEN</p><h2>Log your practice</h2></div><button class="close-button" id="close-practice" type="button" aria-label="Close">×</button></div>

@@ -1491,8 +1491,6 @@ document.querySelector("#dashboard-date").textContent = new Date().toLocaleDateS
 document.querySelector("#dashboard-greeting").textContent = `${new Date().getHours() < 12 ? "Good morning" : new Date().getHours() < 18 ? "Good afternoon" : "Good evening"}, ${DEMO_PROFILE.student.firstName}`;
 document.querySelector("#student-display-name").textContent = DEMO_PROFILE.student.firstName;
 document.querySelector("#student-avatar").textContent = DEMO_PROFILE.student.firstName[0].toUpperCase();
-document.querySelector("#teacher-display-name").textContent = DEMO_PROFILE.teacher.displayName;
-document.querySelector("#teacher-avatar").textContent = DEMO_PROFILE.teacher.displayName[0].toUpperCase();
 document.querySelector("#practice-date").value = todayKey;
 document.querySelector("#practice-date").max = todayKey;
 document.querySelector("#week-history-select").addEventListener("change", () => {
@@ -1580,10 +1578,59 @@ document.querySelector("#close-practice").addEventListener("click", () => dialog
 dialog.addEventListener("click", (event) => {
   if (event.target === dialog) dialog.close();
 });
+const profileDialog = document.querySelector("#profile-dialog");
+
+document.querySelector("#open-profile").addEventListener("click", async () => {
+  if (!currentUserId) {
+    showToast("Please log in to edit your profile.");
+    return;
+  }
+
+  const { data: profile, error: profileError } = await window.supabaseClient
+    .from("profiles")
+    .select("display_name")
+    .eq("id", currentUserId)
+    .maybeSingle();
+
+  if (profileError) {
+    console.error("Could not load profile:", profileError);
+    showToast("Could not load your profile. Please try again.");
+    return;
+  }
+
+  const { data: details, error: detailsError } = await window.supabaseClient
+    .from("student_profiles")
+    .select("instrument, year_level")
+    .eq("user_id", currentUserId)
+    .maybeSingle();
+
+  if (detailsError) {
+    console.error("Could not load student details:", detailsError);
+    showToast("Could not load your musical details. Please try again.");
+    return;
+  }
+
+  document.querySelector("#profile-name-input").value = profile?.display_name || "";
+  document.querySelector("#profile-instrument-input").value = details?.instrument || "";
+  document.querySelector("#profile-year-input").value = details?.year_level || "";
+
+  profileDialog.showModal();
+});
+
+document.querySelector("#close-profile").addEventListener("click", () => {
+  profileDialog.close();
+});
+
+profileDialog.addEventListener("click", (event) => {
+  if (event.target === profileDialog) profileDialog.close();
+});
+
 document.querySelector("#edit-goal").addEventListener("click", () => {
   updateGoalDialog();
   goalDialog.showModal();
 });
+
+
 document.querySelector("#close-goal").addEventListener("click", () => goalDialog.close());
 goalDialog.addEventListener("click", (event) => {
   if (event.target === goalDialog) goalDialog.close();
