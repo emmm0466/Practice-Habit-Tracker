@@ -319,6 +319,8 @@ function saveState() {
             showToast(
               "Your changes are saved on this device but could not sync to your account."
             );
+          } else if (studentDataLoaded && currentUserId === userId) {
+            await syncSharedGardenSummary();
           }
         } catch (error) {
           console.error("Practice data sync failed:", error);
