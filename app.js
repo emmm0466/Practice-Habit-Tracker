@@ -87,6 +87,7 @@ function createPlant(flower, minutes) {
     growthMinutes: minutes,
     growthGoalMinutes: milestones[milestones.length - 1].minutes,
     growthFloor: 0,
+    bloomRewardClaimed: false,
   };
 }
 function normalizeSession(session) {
@@ -205,33 +206,36 @@ function loadState(savedOverride) {
       .filter((flower) => typeof flower === "string" && FLOWERS.some((item) => item.name === flower)),
   ])];
   const seedTokens = recoverTokenBalance(saved, sessions, unlocked);
+  const freeSeeds = parseTokenBalance(saved.freeSeeds) ?? 0;
 
   let garden;
   if (Array.isArray(saved.garden)) {
-    const seenFlowers = new Set();
-    garden = saved.garden
-      .filter((plant) => {
-        if (!plant || !FLOWERS.some((flower) => flower.name === plant.flower) || seenFlowers.has(plant.flower)) return false;
-        seenFlowers.add(plant.flower);
-        return true;
-      })
-      .map((plant) => ({
-        id: typeof plant.id === "string" && /^[a-zA-Z0-9_-]+$/.test(plant.id) ? plant.id : newId(),
-        flower: plant.flower,
-        growthMinutes: Number.isFinite(plant.growthMinutes) ? Math.max(0, plant.growthMinutes) : 0,
-        growthGoalMinutes: Number.isFinite(plant.growthGoalMinutes)
-          ? Math.max(7, plant.growthGoalMinutes)
-          : growthMilestonesFor(plant.flower)[DEFAULT_GROWTH_MILESTONES.length - 1].minutes,
-        growthFloor: Number.isFinite(plant.growthFloor)
-          ? Math.min(1, Math.max(0, plant.growthFloor))
-          : 0,
-      }))
-      .map((plant) => ({
-        ...plant,
-        growthGoalMinutes: plant.growthGoalMinutes === LEGACY_FULL_BLOOM_MINUTES
-          ? growthMilestonesFor(plant.flower)[DEFAULT_GROWTH_MILESTONES.length - 1].minutes
-          : plant.growthGoalMinutes,
-      }));
+  garden = saved.garden
+    .filter((plant) =>
+      plant && FLOWERS.some((flower) => flower.name === plant.flower)
+    )
+    .map((plant) => ({
+      id: typeof plant.id === "string" && /^[a-zA-Z0-9_-]+$/.test(plant.id)
+        ? plant.id
+        : newId(),
+      flower: plant.flower,
+      growthMinutes: Number.isFinite(plant.growthMinutes)
+        ? Math.max(0, plant.growthMinutes)
+        : 0,
+      growthGoalMinutes: Number.isFinite(plant.growthGoalMinutes)
+        ? Math.max(7, plant.growthGoalMinutes)
+        : growthMilestonesFor(plant.flower)[DEFAULT_GROWTH_MILESTONES.length - 1].minutes,
+      growthFloor: Number.isFinite(plant.growthFloor)
+        ? Math.min(1, Math.max(0, plant.growthFloor))
+        : 0,
+      bloomRewardClaimed: plant.bloomRewardClaimed === true,
+    }))
+    .map((plant) => ({
+      ...plant,
+      growthGoalMinutes: plant.growthGoalMinutes === LEGACY_FULL_BLOOM_MINUTES
+        ? growthMilestonesFor(plant.flower)[DEFAULT_GROWTH_MILESTONES.length - 1].minutes
+        : plant.growthGoalMinutes,
+    }));
   } else {
     const previousPracticeMinutes = sessions.reduce((total, session) => total + session.minutes, 0);
     garden = unlocked.map((flower) =>
@@ -255,6 +259,7 @@ return {
     : null,
     sessions,
     seedTokens,
+    freeSeeds,
     unlocked: [...new Set([...unlocked, ...garden.map((plant) => plant.flower)])],
     weeklyTargetMinutes,
     expectedPracticeDays,
@@ -271,6 +276,7 @@ function createInitialState() {
     version: 2,
     sessions: [],
     seedTokens: 0,
+    freeSeeds: 0,
     unlocked: ["Sunflower"],
     weeklyTargetMinutes: 60,
     expectedPracticeDays: 3,
@@ -1396,60 +1402,78 @@ function updatePlantSvg(svg, plant, health) {
   const title = svg.querySelector("title");
   if (title) title.textContent = `${flower.name}, ${growth.stageName.toLowerCase()}, ${health.label.toLowerCase()}`;
 }
+
 function renderCollection() {
   const health = getPlantHealth();
   const garden = document.querySelector("#mini-garden");
+
   document.querySelector("#shop-token-count").textContent = tokenLabel(state.seedTokens);
-  document.querySelector("#collection-count").textContent = `${state.garden.length} / ${FLOWERS.length}`;
+  document.querySelector("#collection-count").textContent = `${state.garden.length} plants`;
+
   const active = activePlant();
-  FLOWERS.forEach((flower, index) => {
+
+  // Display every individual plant in the student's garden.
+  garden.replaceChildren();
+
+  state.garden.forEach((plant) => {
+    const growth = growthFor(plant);
+    const stageName = growth.stageName;
+    const activeClass = plant.id === active?.id ? " is-active" : "";
+
+    const card = document.createElement("article");
+    card.className = `garden-plant growth-${growth.stageClass} plant-health-${health.status}${activeClass}`;
+    card.dataset.plantId = plant.id;
+
+    card.innerHTML = `${plantSvg(plant, health, `garden-${plant.id}`)}
+      <span class="garden-plant-name"></span>
+      <span class="garden-plant-status"></span>
+      <span class="garden-plant-progress" aria-hidden="true"><span></span></span>`;
+
+    card.setAttribute(
+      "aria-label",
+      `${plant.flower}, ${stageName}, ${health.label}${plant.id === active?.id ? ", currently growing" : ""}`
+    );
+
+    card.querySelector(".garden-plant-name").textContent = plant.flower;
+    card.querySelector(".garden-plant-status").innerHTML =
+      `${plant.id === active?.id ? "Tending now · " : ""}${stageName} · ${growth.minutes}/${growth.fullBloomMinutes} min<br>${growth.nextMilestone ? `Next: ${growth.nextMilestone.name} ${growth.minutesIntoNextMilestone}/${growth.minutesBetweenMilestones} min` : "Full bloom achieved"} · ${health.label}`;
+
+    card.querySelector(".garden-plant-progress span").style.width = `${growth.percent}%`;
+
+    updatePlantSvg(card.querySelector(".plant-svg"), plant, health);
+
+    garden.appendChild(card);
+  });
+
+  // Display every flower variety in the shop, including varieties already owned.
+  FLOWERS.forEach((flower) => {
     const seedPlant = {
       flower: flower.name,
       growthMinutes: 0,
       growthGoalMinutes: growthMilestonesFor(flower.name)[DEFAULT_GROWTH_MILESTONES.length - 1].minutes,
       growthFloor: 0,
     };
-    const plant = state.garden.find((item) => item.flower === flower.name);
-    if (plant) {
-      const growth = growthFor(plant);
-      const stageName = growth.stageName;
-      const activeClass = plant.id === active?.id ? " is-active" : "";
-      let card = garden.querySelector(`.garden-plant[data-plant-id="${plant.id}"]`);
-      if (!card) {
-        card = document.createElement("article");
-        card.className = "garden-plant";
-        card.dataset.plantId = plant.id;
-        card.innerHTML = `${plantSvg(plant, health, `garden-${plant.id}`)}
-          <span class="garden-plant-name"></span>
-          <span class="garden-plant-status"></span>
-          <span class="garden-plant-progress" aria-hidden="true"><span></span></span>`;
-        garden.querySelector(`.locked-seed[data-flower="${flower.name}"]`)?.replaceWith(card);
-      }
-      card.className = `garden-plant growth-${growth.stageClass} plant-health-${health.status}${activeClass}`;
-      card.setAttribute("aria-label", `${flower.name}, ${stageName}, ${health.label}${plant.id === active?.id ? ", currently growing" : ""}`);
-      card.querySelector(".garden-plant-name").textContent = flower.name;
-      card.querySelector(".garden-plant-status").innerHTML = `${plant.id === active?.id ? "Tending now · " : ""}${stageName} · ${growth.minutes}/${growth.fullBloomMinutes} min<br>${growth.nextMilestone ? `Next: ${growth.nextMilestone.name} ${growth.minutesIntoNextMilestone}/${growth.minutesBetweenMilestones} min` : "Full bloom achieved"} · ${health.label}`;
-      card.querySelector(".garden-plant-progress span").style.width = `${growth.percent}%`;
-      updatePlantSvg(card.querySelector(".plant-svg"), plant, health);
-      const currentAtIndex = garden.children[index];
-      if (currentAtIndex !== card) garden.insertBefore(card, currentAtIndex || null);
-      return;
-    }
-    let button = garden.querySelector(`.locked-seed[data-flower="${flower.name}"]`);
-    if (!button) {
-      button = document.createElement("button");
-      button.type = "button";
-      button.dataset.flower = flower.name;
-      button.className = "garden-plant locked-seed growth-seed";
-      button.innerHTML = `${plantSvg(seedPlant, health, `locked-${flower.name.toLowerCase()}`)}
-        <span class="garden-plant-name"></span><span class="seed-cost"></span>`;
-    }
-    button.setAttribute("aria-label", `Unlock ${flower.name} seed for ${flower.cost} seed tokens`);
+
+    const button = document.createElement("button");
+    button.type = "button";
+    button.dataset.flower = flower.name;
+    button.className = "garden-plant locked-seed growth-seed";
+
+    button.innerHTML = `${plantSvg(seedPlant, health, `locked-${flower.name.toLowerCase()}`)}
+      <span class="garden-plant-name"></span>
+      <span class="seed-cost"></span>`;
+
+    button.setAttribute(
+      "aria-label",
+      `Buy another ${flower.name} seed for ${flower.cost} seed tokens`
+    );
+
     button.querySelector(".garden-plant-name").textContent = `${flower.name} seed`;
     button.querySelector(".seed-cost").textContent = `${flower.cost} seed tokens`;
+
     updatePlantSvg(button.querySelector(".plant-svg"), seedPlant, health);
-    const currentAtIndex = garden.children[index];
-    if (currentAtIndex !== button) garden.insertBefore(button, currentAtIndex || null);
+
+    garden.appendChild(button);
   });
 }
 
@@ -1909,9 +1933,33 @@ form.addEventListener("submit", (event) => {
     tokensEarned: 0,
   };
   const plant = activePlant();
-  const garden = plant
-    ? state.garden.map((item) => item.id === plant.id ? { ...item, growthMinutes: item.growthMinutes + minutes } : item)
-    : state.garden;
+  let bloomSeedEarned = false;
+
+const garden = plant
+  ? state.garden.map((item) => {
+      if (item.id !== plant.id) return item;
+
+      const updatedPlant = {
+        ...item,
+        growthMinutes: item.growthMinutes + minutes,
+      };
+
+      const reachedFullBloom =
+        growthFor(item).progress < 1 &&
+        growthFor(updatedPlant).progress >= 1;
+
+      if (reachedFullBloom && item.bloomRewardClaimed !== true) {
+        bloomSeedEarned = true;
+
+        return {
+          ...updatedPlant,
+          bloomRewardClaimed: true,
+        };
+      }
+
+      return updatedPlant;
+    })
+  : state.garden;
   const sessions = [...state.sessions, session];
   const milestones = awardWeeklyMilestones(sessions, week, state.weeklyRewards);
   session.tokensEarned = milestones.earned.length;
@@ -1921,6 +1969,7 @@ form.addEventListener("submit", (event) => {
     garden,
     activePlantId: plant?.id || state.activePlantId,
     seedTokens: state.seedTokens + milestones.earned.length,
+    freeSeeds: state.freeSeeds + (bloomSeedEarned ? 1 : 0),
     weeklyRewards: { ...state.weeklyRewards, [week]: milestones.updatedWeek },
   };
   if (!saveState()) {
@@ -1945,7 +1994,11 @@ form.addEventListener("submit", (event) => {
   const rewardMessage = milestones.earned.length
     ? ` You earned ${milestones.earned.length} seed ${milestones.earned.length === 1 ? "token" : "tokens"} for your ${milestones.earned.join(" and ")} milestone${milestones.earned.length > 1 ? "s" : ""}!`
     : "";
-  showToast(`${minutes} minutes added to your ${plantName.toLowerCase()}'s growth.${rewardMessage}`);
+  const bloomMessage = bloomSeedEarned
+  ? " Your flower reached full bloom! You earned a free seed!"
+  : "";
+
+showToast(`${minutes} minutes added to your ${plantName.toLowerCase()}'s growth.${rewardMessage}${bloomMessage}`);
 });
 
 /* =================================
@@ -2167,51 +2220,75 @@ setInterval(renderPracticeTimer, 1000);
 // Restore the timer when the page loads
 renderPracticeTimer();
 
+
 const flowersBeingUnlocked = new Set();
+
 document.querySelector("#mini-garden").addEventListener("click", (event) => {
   const button = event.target.closest("[data-flower]");
   if (!button) return;
+
   const flower = FLOWERS.find((item) => item.name === button.dataset.flower);
-  if (!flower || state.unlocked.includes(flower.name) || flowersBeingUnlocked.has(flower.name)) return;
+
+  if (!flower || flowersBeingUnlocked.has(flower.name)) return;
+
   const availableTokens = parseTokenBalance(state.seedTokens);
-  if (!Number.isSafeInteger(flower.cost) || flower.cost < 0 || availableTokens === null) {
-    console.error("Flower unlock stopped because its cost or the saved token balance is invalid.", {
-      flower: flower.name,
-      cost: flower.cost,
-      availableTokens: state.seedTokens,
-    });
-    showToast("Your seed token balance could not be verified. No tokens were spent.");
+  const availableFreeSeeds = parseTokenBalance(state.freeSeeds);
+
+  if (
+    !Number.isSafeInteger(flower.cost) ||
+    flower.cost < 0 ||
+    availableTokens === null ||
+    availableFreeSeeds === null
+  ) {
+    showToast("Your seed balance could not be verified. Nothing was spent.");
     return;
   }
-  if (availableTokens < flower.cost) {
+
+  // Use a free seed first, if one is available.
+  const useFreeSeed = availableFreeSeeds > 0;
+
+  if (!useFreeSeed && availableTokens < flower.cost) {
     const needed = flower.cost - availableTokens;
-    showToast(`You need ${needed} more seed token${needed === 1 ? "" : "s"} to unlock ${flower.name.toLowerCase()}.`);
+    showToast(`You need ${needed} more seed token${needed === 1 ? "" : "s"} to plant another ${flower.name.toLowerCase()}.`);
     return;
   }
+
   flowersBeingUnlocked.add(flower.name);
   button.disabled = true;
+
   const previousState = state;
   const plant = createPlant(flower.name, 0);
+
   state = {
     ...state,
-    seedTokens: availableTokens - flower.cost,
-    unlocked: [...state.unlocked, flower.name],
+    seedTokens: useFreeSeed ? availableTokens : availableTokens - flower.cost,
+    freeSeeds: useFreeSeed ? availableFreeSeeds - 1 : availableFreeSeeds,
+    unlocked: [...new Set([...state.unlocked, flower.name])],
     garden: [...state.garden, plant],
     activePlantId: plant.id,
   };
+
   if (!saveState()) {
     state = previousState;
     flowersBeingUnlocked.delete(flower.name);
     button.disabled = false;
+
     showToast(storageReadFailed
-      ? "Saved data could not be read, so this seed was not unlocked to protect it."
+      ? "Saved data could not be read, so this seed was not planted to protect it."
       : "Your browser couldn't save this garden change. Check available storage and try again.");
     return;
   }
+
   render();
   flowersBeingUnlocked.delete(flower.name);
+
   if (storageReadFailed) warnStorageUnavailable();
-  showToast(`${flower.name} unlocked and planted. Your practice will help it grow next.`);
+
+  showToast(
+    useFreeSeed
+      ? `You used a free seed to plant another ${flower.name}!`
+      : `You purchased and planted another ${flower.name}!`
+  );
 });
 
 function showPage() {
