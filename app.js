@@ -1515,8 +1515,12 @@ async function loadStudentData(user) {
     studentDataLoaded = true;
 
     render();
-    showPage();
-    return;
+showPage();
+
+await loadIncomingFriendRequests();
+await loadAcceptedFriends();
+
+return;
   }
 
   // New account: transfer the existing browser data.
