@@ -1426,6 +1426,94 @@ function renderCollection() {
     if (currentAtIndex !== button) garden.insertBefore(button, currentAtIndex || null);
   });
 }
+
+const DAILY_INSPIRATION = [
+  {
+    quote: "Every note is a step in your musical journey.",
+    title: "Practise slowly first.",
+    tip: "When learning a difficult passage, slow it right down. Focus on accuracy before gradually increasing the tempo."
+  },
+  {
+    quote: "Progress happens one practice session at a time.",
+    title: "Break it into smaller sections.",
+    tip: "Rather than practising an entire piece from beginning to end, focus on a few bars at a time. Master each section before putting it all together."
+  },
+  {
+    quote: "Mistakes are proof that you are learning.",
+    title: "Listen to yourself play.",
+    tip: "Record a short practice session and listen back. Notice one thing you are doing well and one thing you could improve."
+  },
+  {
+    quote: "Music is not about being perfect. It is about expressing yourself.",
+    title: "Experiment with dynamics.",
+    tip: "Try playing a familiar passage both softly and loudly. Explore how changing the volume can affect the mood of your music."
+  },
+  {
+    quote: "Little improvements lead to big achievements.",
+    title: "Use a metronome.",
+    tip: "Practise a tricky rhythm slowly with a metronome. Gradually increase the speed as you become more confident."
+  },
+  {
+    quote: "The more you practise, the more possibilities you discover.",
+    title: "Focus on your posture.",
+    tip: "Check that you are sitting or standing comfortably and holding your instrument correctly. Good posture can make playing easier."
+  },
+  {
+    quote: "Enjoy the process of becoming a better musician.",
+    title: "Practise something you love.",
+    tip: "Spend a little time playing a favourite song or piece. Enjoying your instrument is just as important as working on difficult skills."
+  },
+  {
+    quote: "Confidence grows when you give yourself time to learn.",
+    title: "Try playing from memory.",
+    tip: "Choose a short section of a familiar piece and see if you can play it without looking at the music."
+  },
+  {
+    quote: "Every musician started somewhere.",
+    title: "Warm up before you begin.",
+    tip: "Start with a few gentle scales, long notes or simple exercises to prepare your fingers, breath and concentration."
+  },
+  {
+    quote: "Your musical journey is uniquely yours.",
+    title: "Pay attention to articulation.",
+    tip: "Experiment with playing notes smoothly and separately. Notice how articulation changes the character of a musical phrase."
+  },
+  {
+    quote: "A little practice today makes tomorrow easier.",
+    title: "Revisit something tricky.",
+    tip: "Return to a passage you found difficult in an earlier session. Notice how much easier it feels after a little more practice."
+  },
+  {
+    quote: "Music gives a voice to what words cannot express.",
+    title: "Think about musical expression.",
+    tip: "Before playing a phrase, think about the feeling or story behind it. Experiment with shaping the melody to communicate that idea."
+  },
+  {
+    quote: "Be patient with yourself. Great things take time.",
+    title: "Practise your scales.",
+    tip: "Choose one scale and focus on even notes, steady rhythm and clear sound. Scales help build familiarity with your instrument."
+  },
+  {
+    quote: "You don't have to be the best. You just have to keep growing.",
+    title: "Set one small goal.",
+    tip: "Choose one specific thing to improve during your next practice session. A clear focus can make your practice more effective."
+  }
+];
+
+function renderDailyInspiration() {
+  const today = new Date();
+  const dayNumber = Math.floor(
+    Date.UTC(today.getFullYear(), today.getMonth(), today.getDate()) / 86400000
+  );
+
+  const dailyContent = DAILY_INSPIRATION[
+    dayNumber % DAILY_INSPIRATION.length
+  ];
+
+  document.querySelector("#daily-quote").textContent = dailyContent.quote;
+  document.querySelector("#daily-tip-title").textContent = dailyContent.title;
+  document.querySelector("#daily-tip-text").textContent = dailyContent.tip;
+}
 function render() {
   renderWeek();
   renderFlower();
