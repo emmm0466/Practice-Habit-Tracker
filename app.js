@@ -787,12 +787,41 @@ async function searchFriends() {
   }
 
   results.innerHTML = data.map(profile => `
-    <div class="friend-row">
-      <span>${escapeHtml(profile.display_name)}</span>
-    </div>
-  `).join("");
-}
+  <div class="friend-row">
+    <span>${escapeHtml(profile.display_name)}</span>
+    <button
+      type="button"
+      class="button button-primary add-friend-button"
+      data-profile-id="${escapeHtml(profile.id)}"
+    >
+      Add Friend
+    </button>
+  </div>
+`).join("");
 
+results.querySelectorAll(".add-friend-button").forEach(button => {
+  button.addEventListener("click", () => {
+    sendFriendRequest(button.dataset.profileId);
+  });
+});
+}
+async function sendFriendRequest(profileId) {
+  const { error } = await window.supabaseClient
+    .from("friend_requests")
+    .insert({
+      requester_id: currentUserId,
+      recipient_id: profileId
+    });
+
+  if (error) {
+    console.error("Friend request failed:", error);
+    showToast("Could not send friend request. Please try again.");
+    return;
+  }
+
+  showToast("Friend request sent!");
+  await searchFriends();
+}
 // Connect the Search button
 document.querySelector("#friend-search-button")
   .addEventListener("click", searchFriends);
