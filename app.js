@@ -814,7 +814,7 @@ async function sendFriendRequest(profileId) {
     });
 
   if (error) {
-    console.error("Friend request failed:", error);
+    console.error("Friend request failed:", JSON.stringify(error, null, 2));
     showToast("Could not send friend request. Please try again.");
     return;
   }
