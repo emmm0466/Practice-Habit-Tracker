@@ -1408,6 +1408,7 @@ function renderCollection() {
   const garden = document.querySelector("#mini-garden");
 
   document.querySelector("#shop-token-count").textContent = tokenLabel(state.seedTokens);
+  document.querySelector("#shop-free-seed-count").textContent = state.freeSeeds;
   document.querySelector("#collection-count").textContent = `${state.garden.length} plants`;
 
   const active = activePlant();
