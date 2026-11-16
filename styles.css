@@ -919,3 +919,57 @@ h1 { font-family: "Nunito", sans-serif; font-weight: 800; font-size: 32px; lette
 .account-dropdown button span {
   font-size: 17px;
 }
+
+/* Expandable practice log sessions */
+.practice-log-summary {
+  cursor: pointer;
+  list-style: none;
+}
+
+.practice-log-summary::-webkit-details-marker {
+  display: none;
+}
+
+.practice-log-toggle {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid #e8eadf;
+  color: #668064;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.toggle-arrow {
+  display: inline-block;
+  transition: transform 0.2s ease;
+}
+
+.complete-log-entry[open] .toggle-arrow {
+  transform: rotate(180deg);
+}
+
+.complete-log-entry .session-notes {
+  padding: 12px 4px 4px;
+}
+
+.complete-log-entry .session-notes p {
+  margin: 0 0 12px;
+}
+
+.complete-log-entry .session-notes p:last-child {
+  margin-bottom: 0;
+}
+
+.complete-log-entry .session-notes strong {
+  display: block;
+  margin-bottom: 5px;
+  color: #668064;
+}
+
+.complete-log-entry .session-notes span {
+  display: block;
+  line-height: 1.6;
+}

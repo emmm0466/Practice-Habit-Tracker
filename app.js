@@ -765,25 +765,38 @@ function renderCompleteLog() {
     const goal = session.goal ? escapeHtml(session.goal) : "";
 const note = session.note ? escapeHtml(session.note) : "";
 const nextPractice = session.nextPractice ? escapeHtml(session.nextPractice) : "";
-    return `<article class="complete-log-entry">
-      <div class="log-entry"><div class="log-icon log-icon-${["sage", "pink", "lavender"][index % 3]}" aria-hidden="true">
-  <svg viewBox="0 0 64 64">
-    <path class="note-stem" d="M38 14 V43"/>
-    <path class="note-flag" d="M38 14 C49 15 53 22 48 30 C46 25 42 23 38 23"/>
-    <ellipse class="note-head" cx="30" cy="44" rx="8" ry="5" transform="rotate(-22 30 44)"/>
-    <path class="note-leaf" d="M35 31 C34 17 45 14 49 22 C48 29 42 32 35 31Z"/>
-    <path class="note-vein" d="M36 30 Q42 24 46 21"/>
-    <path class="note-leaf" d="M31 35 C19 23 10 29 16 38 C20 42 27 39 31 35Z"/>
-    <path class="note-vein" d="M29 35 Q22 33 17 33"/>
-  </svg>
-</div><div class="log-details"><strong>${escapeHtml(session.focus)}</strong><span>${dateLabel(session.date, { weekday: "long", month: "long", day: "numeric", year: "numeric" })} · ${escapeHtml(session.instrument)}</span></div><div class="log-duration">${session.minutes} min</div></div>
-      <p class="practice-encouragement">${encouragements[index]}</p>
-            <div class="session-notes">
+  
+return `<details class="complete-log-entry">
+      <summary class="practice-log-summary">
+        <div class="log-entry">
+          <div class="log-icon log-icon-${["sage", "pink", "lavender"][index % 3]}" aria-hidden="true">
+            <svg viewBox="0 0 64 64">
+              <path class="note-stem" d="M38 14 V43"/>
+              <path class="note-flag" d="M38 14 C49 15 53 22 48 30 C46 25 42 23 38 23"/>
+              <ellipse class="note-head" cx="30" cy="44" rx="8" ry="5" transform="rotate(-22 30 44)"/>
+              <path class="note-leaf" d="M35 31 C34 17 45 14 49 22 C48 29 42 32 35 31Z"/>
+              <path class="note-vein" d="M36 30 Q42 24 46 21"/>
+              <path class="note-leaf" d="M31 35 C19 23 10 29 16 38 C20 42 27 39 31 35Z"/>
+              <path class="note-vein" d="M29 35 Q22 33 17 33"/>
+            </svg>
+          </div>
+          <div class="log-details">
+            <strong>${escapeHtml(session.focus)}</strong>
+            <span>${dateLabel(session.date, { weekday: "long", month: "long", day: "numeric", year: "numeric" })} · ${escapeHtml(session.instrument)}</span>
+          </div>
+          <div class="log-duration">${session.minutes} min</div>
+        </div>
+        <p class="practice-encouragement">${encouragements[index]}</p>
+        <span class="practice-log-toggle">View session details <span class="toggle-arrow">⌄</span></span>
+      </summary>
+
+      <div class="session-notes">
         ${goal ? `<p><strong>Session goal</strong><span>${goal}</span></p>` : ""}
         ${note ? `<p><strong>Practice reflection</strong><span>${note}</span></p>` : ""}
         ${nextPractice ? `<p><strong>Next time</strong><span>${nextPractice}</span></p>` : ""}
+        ${!goal && !note && !nextPractice ? `<p>No reflections were added to this session.</p>` : ""}
       </div>
-    </article>`;
+    </details>`;
   }).join("");
 }
 function renderGardenPage() {
