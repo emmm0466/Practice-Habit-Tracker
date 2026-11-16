@@ -778,8 +778,32 @@
           <option value="Sight-reading">Sight-reading</option>
           <option value="Something else">Something else</option>
         </select>
-        <label for="practice-note">Anything you noticed? <span class="optional">(optional)</span></label>
-        <textarea id="practice-note" name="note" rows="2" maxlength="160" placeholder="A tricky bar, a small win, or something to ask your teacher..."></textarea>
+        <label for="practice-goal">What is your goal for this session? <span class="optional">(optional)</span></label>
+<textarea
+  id="practice-goal"
+  name="goal"
+  rows="2"
+  maxlength="300"
+  placeholder="e.g. Play the tricky section of my piece accurately at a slower tempo..."
+></textarea>
+
+<label for="practice-note">Practice reflection <span class="optional">(optional)</span></label>
+<textarea
+  id="practice-note"
+  name="note"
+  rows="2"
+  maxlength="300"
+  placeholder="How did it go? What improved? What did you find challenging?"
+></textarea>
+
+<label for="practice-next">What should you practise next time? <span class="optional">(optional)</span></label>
+<textarea
+  id="practice-next"
+  name="nextPractice"
+  rows="2"
+  maxlength="300"
+  placeholder="e.g. Continue working on bar 16 and gradually increase the tempo..."
+></textarea>
         <div class="reward-hint"><span>✧</span> Practice grows your seed. Weekly consistency milestones can earn seed tokens.</div>
         <button class="button button-primary submit-practice" type="submit">Save practice <span>→</span></button>
       </form>

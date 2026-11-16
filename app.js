@@ -98,8 +98,10 @@ function normalizeSession(session) {
     date: session.date,
     minutes: session.minutes,
     instrument: typeof session.instrument === "string" && session.instrument.trim() ? session.instrument : "Violin",
-    focus: typeof session.focus === "string" ? session.focus : "Practice",
+        focus: typeof session.focus === "string" ? session.focus : "Practice",
+    goal: typeof session.goal === "string" ? session.goal : "",
     note: typeof session.note === "string" ? session.note : "",
+    nextPractice: typeof session.nextPractice === "string" ? session.nextPractice : "",
     teacherFeedback: typeof session.teacherFeedback === "string" ? session.teacherFeedback : "",
     createdAt: typeof session.createdAt === "string" ? session.createdAt : "1970-01-01T00:00:00.000Z",
     tokensEarned: Number.isInteger(session.tokensEarned) ? Math.max(0, session.tokensEarned) : 0,
@@ -760,7 +762,9 @@ function renderCompleteLog() {
   }
   const encouragements = sessionEncouragements(sessions);
   list.innerHTML = sessions.map((session, index) => {
-    const note = session.note ? escapeHtml(session.note) : "No student note added.";
+    const goal = session.goal ? escapeHtml(session.goal) : "";
+const note = session.note ? escapeHtml(session.note) : "";
+const nextPractice = session.nextPractice ? escapeHtml(session.nextPractice) : "";
     return `<article class="complete-log-entry">
       <div class="log-entry"><div class="log-icon log-icon-${["sage", "pink", "lavender"][index % 3]}" aria-hidden="true">
   <svg viewBox="0 0 64 64">
@@ -774,9 +778,11 @@ function renderCompleteLog() {
   </svg>
 </div><div class="log-details"><strong>${escapeHtml(session.focus)}</strong><span>${dateLabel(session.date, { weekday: "long", month: "long", day: "numeric", year: "numeric" })} · ${escapeHtml(session.instrument)}</span></div><div class="log-duration">${session.minutes} min</div></div>
       <p class="practice-encouragement">${encouragements[index]}</p>
-      <div class="session-notes">
-  <p><strong>Your practice notes</strong><span>${note}</span></p>
-</div>
+            <div class="session-notes">
+        ${goal ? `<p><strong>Session goal</strong><span>${goal}</span></p>` : ""}
+        ${note ? `<p><strong>Practice reflection</strong><span>${note}</span></p>` : ""}
+        ${nextPractice ? `<p><strong>Next time</strong><span>${nextPractice}</span></p>` : ""}
+      </div>
     </article>`;
   }).join("");
 }
@@ -1928,7 +1934,9 @@ form.addEventListener("submit", (event) => {
     minutes,
     instrument: String(data.get("instrument")),
     focus: String(data.get("focus")),
-    note: String(data.get("note")).trim(),
+    goal: String(data.get("goal") || "").trim(),
+    note: String(data.get("note") || "").trim(),
+    nextPractice: String(data.get("nextPractice") || "").trim(),
     createdAt: new Date().toISOString(),
     tokensEarned: 0,
   };
